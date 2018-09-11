@@ -8,4 +8,4 @@ android:
   - android-26
 notifications:
   email: false
-script: ./scripts/build.sh
+script: ./scripts/run-tests.sh
