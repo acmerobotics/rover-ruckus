@@ -1,0 +1,11 @@
+language: android
+android:
+  components:
+  - tools
+  - platform-tools
+  - build-tools-27.0.3
+  - android-23
+  - android-26
+notifications:
+  email: false
+ script: ./scripts/build.sh
