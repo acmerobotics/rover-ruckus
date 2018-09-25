@@ -28,6 +28,8 @@ public class MotorControlTest extends LinearOpMode{
     public static double target = 0;
     public static double maxV = 13;
 
+    public static long interval = 5000;
+
 
     @Override
     public void runOpMode() {
@@ -45,8 +47,17 @@ public class MotorControlTest extends LinearOpMode{
 
         waitForStart();
 
+        long lastUpdated = System.currentTimeMillis();
+
         while(!isStopRequested()) {
-            target = gamepad1.right_stick_y * maxV;
+            //target = gamepad1.right_stick_y * maxV;
+
+            long now = System.currentTimeMillis();
+            if (now - lastUpdated > interval) {
+                lastUpdated = now;
+                target = ((Math.random() * 2) - 1) * maxV;
+            }
+
             packet.put("target", target);
             controller.setMotorVelocity(0, target, AngleUnit.RADIANS);
 
