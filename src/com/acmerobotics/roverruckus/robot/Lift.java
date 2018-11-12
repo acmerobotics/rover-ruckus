@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -20,8 +21,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class Lift {
     public static final double LIFT_HEIGHT = 15; //find actual value in inches when lift is in CAD
     public static final double RADIUS = 1; //find actual value in inches when lift is in CAD
-
-    MotionProfile profile;
+    public static PIDCoefficients LIFT_PID = new PIDCoefficients(0, 0, 0); //find liftPid coefficients
+    MotionProfile liftProfile;
 
     private double startTime = 0;
     private DcMotor liftMotor1;
@@ -33,13 +34,11 @@ public class Lift {
     private int encoderOffSet;
     private double liftPower;
 
+
     public Lift(HardwareMap hardwareMap){
         liftMotor1 = hardwareMap.dcMotor.get("LiftMotor1");
         liftMotor2 = hardwareMap.dcMotor.get("LiftMotor2");
-        liftMotor1.setPower(0);
-        liftMotor2.setPower(0);
-
-        pidController = new PIDController();
+        pidController = new PIDController(LIFT_PID);
     }
 
 
@@ -84,8 +83,11 @@ public class Lift {
         minLiftPosition = minPos;
     }
 
+
     public void setLiftPower(double power){
         liftPower = power;
+        liftMotor1.setPower(power);
+        liftMotor2.setPower(power);
         liftMode = LiftMode.DRIVERCONTROLLED;
     }
 
@@ -112,7 +114,7 @@ public class Lift {
 
     public void update(){
 
-        double liftPower = 0;
+        double liftPower;
         switch (liftMode){
             case DRIVERCONTROLLED:
                 double start = getStartingPosition();
@@ -144,28 +146,24 @@ public class Lift {
                 break;
 
             case RUNTOPOSITION:
-                MotionState currrentState = profile.get(System.currentTimeMillis() - startTime);
+                MotionState currrentState = liftProfile.get(System.currentTimeMillis() - startTime);
                 break;
         }
     }
 
     public void driverControlled(){
-
         liftMode = LiftMode.DRIVERCONTROLLED;
     }
 
     public void holdPosition(){
-        double hold = pidController.update(getEncoderPosition());
-
-
         liftMode = LiftMode.HOLDPOSITION;
     }
 
     public void goToPosition(double position){
-        profile = MotionProfileGenerator.generateSimpleMotionProfile(
+        liftProfile = MotionProfileGenerator.generateSimpleMotionProfile(
                 new MotionState(0, 0, 0, 0),
                 new MotionState(position, 0, 0, 0),
-                1, 1, 1
+                1, 1, 1 //find real values eventually
         );
         liftMode = LiftMode.RUNTOPOSITION;
         startTime = System.currentTimeMillis();
