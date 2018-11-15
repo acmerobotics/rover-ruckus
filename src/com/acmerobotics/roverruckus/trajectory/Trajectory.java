@@ -21,8 +21,8 @@ public class Trajectory {
 
     private double duration;
     private boolean complete = false;
+    private double error = 0, axialError = 0, lateralError = 0, averageHeadingError = 0;
 
-    private TelemetryPacket packet;
 
     public Trajectory (Path path) {
 
@@ -30,9 +30,9 @@ public class Trajectory {
         this.axialProfile = MotionProfileGenerator.generateSimpleMotionProfile(
                 new MotionState(0, 0, 0, 0),
                 new MotionState(path.length(), 0, 0, 0),
-                1,
-                1,
-                1
+                MecanumDrive.axialMaxV,
+                MecanumDrive.axialMaxA,
+                MecanumDrive.axialMaxJ
         );
         duration = axialProfile.duration();
 
@@ -42,14 +42,18 @@ public class Trajectory {
 
     }
 
-    public Pose2d update(double t, Pose2d pose) {
+    long lastupdate = 0;
+
+    public synchronized Pose2d update(double t, Pose2d pose, TelemetryPacket packet) {
         if (t >= duration) complete = true;
         Pose2d targetPose = path.get(axialProfile.get(t).getX());
+        double theta = path.deriv(axialProfile.get(t).getX()).pos().angle();
 
 
         Pose2d targetVelocity = path.deriv(axialProfile.get(t).getX()).times(axialProfile.get(t).getV());
 
-        Vector2d trackingError = pose.pos().minus(targetPose.pos()).rotated(targetPose.getHeading());
+        Vector2d trackingError = pose.pos().minus(targetPose.pos()).rotated(-theta);
+        packet.put("theta", theta);
 
         Vector2d trackingCorrection = new Vector2d(
                 axialController.update(trackingError.getX()),
@@ -61,38 +65,59 @@ public class Trajectory {
 
         Pose2d correction = new Pose2d(trackingCorrection, headingCorrection);
 
-        MecanumDrive.drawPose(packet.fieldOverlay(), pose, "black");
         MecanumDrive.drawPose(packet.fieldOverlay(), targetPose, "blue");
 
         packet.fieldOverlay().setStroke("red");
 
         packet.fieldOverlay().strokeLine(
                 targetPose.getX(), targetPose.getY(),
-                targetPose.getX() + trackingError.getX() * Math.cos(targetPose.getHeading()),
-                targetPose.getY() + trackingError.getX() * Math.sin(targetPose.getHeading())
+                targetPose.getX() + trackingError.getX() * Math.cos(theta),
+                targetPose.getY() + trackingError.getX() * Math.sin(theta)
         );
+
+        packet.fieldOverlay().setStroke("purple");
 
         packet.fieldOverlay().strokeLine(
                 targetPose.getX(), targetPose.getY(),
-                targetPose.getX() + trackingError.getY() * Math.cos(targetPose.getHeading()),
-                targetPose.getY() + trackingError.getY() * Math.sin(targetPose.getHeading())
+                targetPose.getX() + trackingError.getY() * -Math.sin(theta),
+                targetPose.getY() + trackingError.getY() * Math.cos(theta)
         );
 
         packet.put("displacement", axialProfile.get(t).getX());
         packet.put("velocity", axialProfile.get(t).getV());
         packet.put("acceleration", axialProfile.get(t).getA());
 
+
         packet.put("axialError", trackingError.getX());
         packet.put("lateralError", trackingError.getY());
         packet.put("headingError", headingError);
 
-        FtcDashboard.getInstance().sendTelemetryPacket(packet);
+        if (lastupdate == 0) lastupdate = System.currentTimeMillis();
+        else {
+            long now = System.currentTimeMillis();
+            long dt = now - lastupdate;
+            lastupdate = now;
+            error += trackingError.norm() * dt;
+            axialError += trackingError.getX() * dt;
+            lateralError += trackingError.getY() * dt;
+            averageHeadingError += headingError * dt;
+        }
 
         return targetVelocity.plus(correction);
     }
 
-    public boolean isComplete() {
+    public synchronized boolean isComplete() {
         return complete;
     }
+
+    public synchronized double averageError() {
+        return complete ? error / duration: 0;
+    }
+
+    public synchronized double avergeLateralError() {return complete ? lateralError / duration: 0;}
+
+    public synchronized double averageAxialError() {return complete ? axialError / duration: 0;}
+
+    public synchronized double averageHeadingError() {return complete ? averageHeadingError / duration: 0;}
 
 }
