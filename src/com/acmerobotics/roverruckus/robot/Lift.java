@@ -1,172 +1,213 @@
 package com.acmerobotics.roverruckus.robot;
 
+import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roadrunner.profile.MotionConstraints;
 import com.acmerobotics.roadrunner.profile.MotionProfile;
+import com.acmerobotics.roadrunner.profile.MotionProfileBuilder;
 import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
 import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorController;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.HardwareDevice;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
-import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
+import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 /**
  * Created by ACME Robotics on 9/25/2018.
+ *
  */
 
-public class Lift {
-    public static final double LIFT_HEIGHT = 15; //find actual value in inches when lift is in CAD
-    public static final double RADIUS = 1; //find actual value in inches when lift is in CAD
-    public static PIDCoefficients LIFT_PID = new PIDCoefficients(0, 0, 0); //find liftPid coefficients
-    MotionProfile liftProfile;
+@Config
+public class Lift extends Subsystem{
+    public static double RADIUS = 1; //find actual value in inches when lift is in CAD
+    public static double LOWER_DISTANCE = 5;
+    public static double CLIMB_END_HEIGHT = 0;
+    public static double CLIMB_START_HEIGHT = 4;
+    public static double LIFT_HEIGHT = 30;
+    public static double maxV = 1;
+    public static double maxA = 1;
+    public static double maxJ = 1;
+    public static double lowerVelocity = 1;
+    public static double climbVelocity = -1;
+    public static double calibrateVelocity = -1;
 
-    private double startTime = 0;
-    private DcMotor liftMotor1;
-    private DcMotor liftMotor2;
+    public static long WAIT_RELEASE = 1000;
+    public static long WAIT_CLIMB = 1000;
+
+    public static double LATCH_ENGAGE = 0;
+    public static double LATCH_DISENGAGE = 0;
+    public static double RATCHET_ENGAGE = 0;
+    public static double RATCHET_DISENGAGE = 0;
+    public static double GOLD_RETRACT = 0;
+    public static double GOLD_EXTEND = 0;
+    public static double SILVER_RETRACT = 0;
+    public static double SILVER_EXTEND = 0;
+
+    private CachingDcMotorEx motor1, motor2;
+    private CachingServo ratchet, gold, silver, latch;
+    private DigitalChannel liftHallEffectSensor;
+    private DistanceSensor distanceSensor;
+
+    private double offset;
+    private double targetPosition;
+
+    private MotionProfile profile;
+    private long startTime;
     private PIDController pidController;
-    public double startPosition;
-    public double maxLiftPosition;
-    public double minLiftPosition;
-    private int encoderOffSet;
-    private double liftPower;
+    private PIDCoefficients coefficients;
 
-
-    public Lift(HardwareMap hardwareMap){
-        liftMotor1 = hardwareMap.dcMotor.get("LiftMotor1");
-        liftMotor2 = hardwareMap.dcMotor.get("LiftMotor2");
-        pidController = new PIDController(LIFT_PID);
-    }
-
+    private long waitTime = 0;
 
     private enum LiftMode{
-        DRIVERCONTROLLED,
-        HOLDPOSITION,
-        RUNTOPOSITION;
+        LATCHED,
+        LOWERING,
+        RELEASING,
+        CALIBRATING,
+        CLIMBING,
+        HOLD_POSITION,
+        RUN_TO_POSITION,
+        DRIVER_CONTROLLED
     }
 
-    private LiftMode liftMode = LiftMode.HOLDPOSITION;
+    private LiftMode liftMode = LiftMode.LATCHED;
+
+    public Lift(Robot robot, HardwareMap hardwareMap){
+        motor1 = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "LiftMotor1"));
+        robot.addMotor(motor1);
+        motor1.setDirection(DcMotorSimple.Direction.FORWARD);
+        motor2 = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "LiftMotor2"));
+        robot.addMotor(motor2);
+        motor1.setDirection(DcMotorSimple.Direction.FORWARD);
+        setPosition(0);
+        holdPosition();
+        engageRatchet();
+        coefficients = new PIDCoefficients(1, 0, 0);
+
+        ratchet = new CachingServo(hardwareMap.get(Servo.class, "ratchet"));
+        robot.addMotor(ratchet);
+        gold = new CachingServo(hardwareMap.get(Servo.class, "gold"));
+        robot.addMotor(gold);
+        silver = new CachingServo(hardwareMap.get(Servo.class, "silver"));
+        robot.addMotor(silver);
+        latch = new CachingServo(hardwareMap.get(Servo.class, "latch"));
 
 
-    public int getEncoderPosition(){
-        return liftMotor1.getCurrentPosition() + encoderOffSet;
     }
 
-    public void setEncoderPosition(int position){
-        encoderOffSet = position - liftMotor1.getCurrentPosition();
+    public double getPosition() {
+        return ((motor1.getCurrentPosition() + offset) / motor1.getMotorType().getTicksPerRev()) * Math.PI * RADIUS * 2;
     }
 
-    public double getStartingPosition(){
-        return this.startPosition = liftMotor1.getCurrentPosition();
+    private void setPosition(double position) {
+        offset = -getPosition() + position;
     }
 
-    public void setStartingPosition(double startPos){
-        this.startPosition = startPos;
-    }
-
-    public double getMaxLiftPosition(){
-        return maxLiftPosition = LIFT_HEIGHT;
-    }
-
-    public void setMaxLiftPosition(double maxPos){
-        maxLiftPosition = maxPos;
-    }
-
-    public double getMinLiftPosition(){
-        return minLiftPosition = getStartingPosition();
-    }
-
-    public void setMinLiftPosition(double minPos){
-        minLiftPosition = minPos;
-    }
-
-
-    public void setLiftPower(double power){
-        liftPower = power;
-        liftMotor1.setPower(power);
-        liftMotor2.setPower(power);
-        liftMode = LiftMode.DRIVERCONTROLLED;
-    }
-
-    private int inchesToTicks(double inches) {
-        double ticksPerRev = liftMotor1.getMotorType().getTicksPerRev();
-        double circumference = 2 * Math.PI * RADIUS;
-        return (int) Math.round(inches * ticksPerRev / circumference);
-    }
-
-    private double ticksToInches(int ticks) {
-        double ticksPerRev = liftMotor1.getMotorType().getTicksPerRev();
-        double revs = ticks / ticksPerRev;
-        return 2 * Math.PI * RADIUS * revs;
-    }
-
-    private double getLiftHeight(){
-        return ticksToInches(getEncoderPosition());
-    }
-
-    private void setLiftHeight(double height){
-        setEncoderPosition(inchesToTicks(height));
-    }
-
-
-    public void update(){
-
-        double liftPower;
-        switch (liftMode){
-            case DRIVERCONTROLLED:
-                double start = getStartingPosition();
-                double max = getMaxLiftPosition();
-                double min = getMinLiftPosition();
-                int currentPos = getEncoderPosition();
-                setStartingPosition(start);
-                setMaxLiftPosition(max);
-                setMinLiftPosition(min);
-                setEncoderPosition(currentPos);
-
-                if(currentPos > start){
-                    liftPower = this.liftPower;
-
-                }else if(currentPos == start){
-                    liftPower = this.liftPower;
-
-                } else {
-                    liftMode = LiftMode.HOLDPOSITION;
+    @Override
+    public void update(TelemetryPacket packet){
+        packet.put("lift mode", liftMode.toString());
+        packet.put("position", getPosition());
+        packet.put("limit hit", limitSensed());
+        switch (liftMode) {
+            case RUN_TO_POSITION:
+                double t = (System.currentTimeMillis() - startTime) / 1000.0;
+                MotionState target = profile.get(t);
+                double error = getPosition() - target.getX();
+                double correction = pidController.update(error);
+                internalSetVelocity(target.getV() + correction);
+                break;
+            case HOLD_POSITION:
+                error = getPosition() - targetPosition;
+                internalSetVelocity(pidController.update(error));
+                break;
+            case LOWERING:
+                disengageRatchet();
+                double distance = distanceSensor.getDistance(DistanceUnit.CM) - LOWER_DISTANCE;
+                packet.put("liftDistanceLowering", distance);
+                internalSetVelocity(distance * lowerVelocity);
+                if (distance == 0) {
+                    waitTime = System.currentTimeMillis() + WAIT_RELEASE;
+                    liftMode = LiftMode.RELEASING;
                 }
-                update();
                 break;
-
-            case HOLDPOSITION:
-                double liftHeight = getLiftHeight();
-                double error = pidController.getError(liftHeight);
-                liftPower = pidController.update(error);
-
+            case RELEASING:
+                if (System.currentTimeMillis() < waitTime) break;
+                unlatch();
+                liftMode = LiftMode.CALIBRATING;
                 break;
-
-            case RUNTOPOSITION:
-                MotionState currrentState = liftProfile.get(System.currentTimeMillis() - startTime);
+            case CALIBRATING:
+                internalSetVelocity(calibrateVelocity);
+                if (limitSensed()) {
+                    setPosition(0);
+                    holdPosition();
+                }
                 break;
+            case CLIMBING:
+                internalSetVelocity(climbVelocity);
+                if (getPosition() <= CLIMB_END_HEIGHT) latch();
+
+
         }
     }
 
-    public void driverControlled(){
-        liftMode = LiftMode.DRIVERCONTROLLED;
+    private void holdPosition(){
+        disengageRatchet();
+        targetPosition = getPosition();
+        liftMode = LiftMode.HOLD_POSITION;
+        pidController.reset();
     }
 
-    public void holdPosition(){
-        liftMode = LiftMode.HOLDPOSITION;
-    }
-
-    public void goToPosition(double position){
-        liftProfile = MotionProfileGenerator.generateSimpleMotionProfile(
-                new MotionState(0, 0, 0, 0),
+    private void goToPosition(double position){
+        profile = MotionProfileGenerator.generateSimpleMotionProfile(
+                new MotionState(getPosition(), 0, 0, 0),
                 new MotionState(position, 0, 0, 0),
-                1, 1, 1 //find real values eventually
-        );
-        liftMode = LiftMode.RUNTOPOSITION;
+                maxV, maxA, maxJ);
         startTime = System.currentTimeMillis();
+        liftMode = LiftMode.RUN_TO_POSITION;
+    }
 
+    public void setVelocty (double v) {
+        internalSetVelocity(v);
+        pidController.reset();
+        liftMode = LiftMode.DRIVER_CONTROLLED;
+    }
+
+    private void internalSetVelocity (double v) {
+        motor1.setVelocity(v / RADIUS, AngleUnit.RADIANS);
+        motor2.setVelocity(v / RADIUS, AngleUnit.RADIANS);
+    }
+
+    private boolean limitSensed() {
+        return liftHallEffectSensor.getState();
+    }
+
+    private void engageRatchet() {
+
+    }
+
+    private void disengageRatchet() {
+        ratchet.setPosition(RATCHET_DISENGAGE);
+    }
+
+    public void latch() {
+        latch.setPosition(LATCH_ENGAGE);
+        liftMode = LiftMode.LATCHED;
+        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        internalSetVelocity(0);
+    }
+
+    public void unlatch() {
+        latch.setPosition(LATCH_DISENGAGE);
+        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        holdPosition();
     }
 }
