@@ -27,6 +27,7 @@ import java.util.concurrent.Executor;
 public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarningSource {
 
     public MecanumDrive drive;
+    public Lift lift;
     private final List<Subsystem> subsystems;
     private final List<Subsystem> subsystemsWithProblem;
 
@@ -58,6 +59,15 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         } catch (Exception e) {
             synchronized(subsystemsWithProblem) {
                 if (!subsystemsWithProblem.contains(drive)) subsystemsWithProblem.add(drive);
+            }
+        }
+
+        try {
+            lift = new Lift(this, map);
+            subsystems.add(lift);
+        } catch (Exception e) {
+            synchronized(subsystemsWithProblem) {
+                if (!subsystemsWithProblem.contains(lift)) subsystemsWithProblem.add(lift);
             }
         }
 
@@ -218,4 +228,29 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
             subsystemsWithProblem.clear();
         }
     }
+
+    public void waitForAllSubsystems() {
+        for (;;) {
+            boolean complete = true;
+            for (Subsystem subsystem : subsystems) {
+                if (subsystem.isBusy()) complete = false;
+            }
+            if (complete) return;
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException ie) {
+                //yikes
+            }
+        }
+    }
+
+//    public void pause (long millis) {
+//        long start = System.currentTimeMillis();
+//        long remaining;
+//        while ((remaining = (millis - (System.currentTimeMillis() - start)) > 0) {
+//            try {
+//                Thread.sleep(end - System.currentTimeMillis());
+//            }
+//        }
+//    }
 }
