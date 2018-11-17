@@ -20,6 +20,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+import java.util.Arrays;
+
 /**
  * Created by ACME Robotics on 9/25/2018.
  *
@@ -71,7 +73,6 @@ public class Lift extends Subsystem{
         LOWERING,
         RELEASING,
         CALIBRATING,
-        CLIMBING,
         HOLD_POSITION,
         RUN_TO_POSITION,
         DRIVER_CONTROLLED
@@ -88,7 +89,6 @@ public class Lift extends Subsystem{
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
         setPosition(0);
         holdPosition();
-        engageRatchet();
         coefficients = new PIDCoefficients(1, 0, 0);
 
         ratchet = new CachingServo(hardwareMap.get(Servo.class, "ratchet"));
@@ -99,10 +99,10 @@ public class Lift extends Subsystem{
         robot.addMotor(silver);
         latch = new CachingServo(hardwareMap.get(Servo.class, "latch"));
 
-
+        engageLatchAndRatchet();
     }
 
-    public double getPosition() {
+    private double getPosition() {
         return ((motor1.getCurrentPosition() + offset) / motor1.getMotorType().getTicksPerRev()) * Math.PI * RADIUS * 2;
     }
 
@@ -111,7 +111,7 @@ public class Lift extends Subsystem{
     }
 
     @Override
-    public void update(TelemetryPacket packet){
+    protected void update(TelemetryPacket packet){
         packet.put("lift mode", liftMode.toString());
         packet.put("position", getPosition());
         packet.put("limit hit", limitSensed());
@@ -128,7 +128,6 @@ public class Lift extends Subsystem{
                 internalSetVelocity(pidController.update(error));
                 break;
             case LOWERING:
-                disengageRatchet();
                 double distance = distanceSensor.getDistance(DistanceUnit.CM) - LOWER_DISTANCE;
                 packet.put("liftDistanceLowering", distance);
                 internalSetVelocity(distance * lowerVelocity);
@@ -139,19 +138,18 @@ public class Lift extends Subsystem{
                 break;
             case RELEASING:
                 if (System.currentTimeMillis() < waitTime) break;
-                unlatch();
+                disengageLatch();
                 liftMode = LiftMode.CALIBRATING;
+                waitTime = System.currentTimeMillis() + WAIT_RELEASE;
                 break;
             case CALIBRATING:
+                if (System.currentTimeMillis() < waitTime) break;
                 internalSetVelocity(calibrateVelocity);
                 if (limitSensed()) {
                     setPosition(0);
                     holdPosition();
                 }
                 break;
-            case CLIMBING:
-                internalSetVelocity(climbVelocity);
-                if (getPosition() <= CLIMB_END_HEIGHT) latch();
 
 
         }
@@ -174,8 +172,15 @@ public class Lift extends Subsystem{
     }
 
     public void setVelocty (double v) {
+        if (liftMode == LiftMode.LATCHED) {
+            if (v <= 0) internalSetVelocity(v); // todo check this sign
+            return;
+        }
+        if (v == 0) {
+            holdPosition();
+            return;
+        }
         internalSetVelocity(v);
-        pidController.reset();
         liftMode = LiftMode.DRIVER_CONTROLLED;
     }
 
@@ -185,29 +190,45 @@ public class Lift extends Subsystem{
     }
 
     private boolean limitSensed() {
-        return liftHallEffectSensor.getState();
-    }
-
-    private void engageRatchet() {
-
+        return liftHallEffectSensor.getState(); //todo is this inverted?
     }
 
     private void disengageRatchet() {
         ratchet.setPosition(RATCHET_DISENGAGE);
+        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        holdPosition();
     }
 
-    public void latch() {
+    private void engageLatchAndRatchet() {
         latch.setPosition(LATCH_ENGAGE);
+        ratchet.setPosition(RATCHET_ENGAGE);
         liftMode = LiftMode.LATCHED;
         motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         internalSetVelocity(0);
     }
 
-    public void unlatch() {
+    private void disengageLatch() {
         latch.setPosition(LATCH_DISENGAGE);
-        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        holdPosition();
+    }
+
+    public void lower() {
+        disengageRatchet();
+        liftMode = LiftMode.LOWERING;
+    }
+
+    public void climb() {
+        engageLatchAndRatchet();
+        liftMode = LiftMode.LATCHED;
+    }
+
+    public void calibrate() {
+        liftMode = LiftMode.CALIBRATING;
+    }
+
+    @Override
+    public boolean isBusy() {
+        return Arrays.asList(LiftMode.DRIVER_CONTROLLED, LiftMode.HOLD_POSITION, LiftMode.LATCHED).contains(liftMode);
     }
 }

@@ -193,4 +193,9 @@ public class MecanumDrive extends Subsystem{
         overlay.strokeLine(pose.getX(), pose.getY(), pose.getX() + cos, pose.getY() + sin);
     }
 
+    @Override
+    public boolean isBusy() {
+        return isFollowingPath();
+    }
+
 }
