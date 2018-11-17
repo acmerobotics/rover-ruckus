@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareDevice;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
@@ -36,20 +37,27 @@ public class Lift {
 
 
     public Lift(HardwareMap hardwareMap){
+
         liftMotor1 = hardwareMap.dcMotor.get("LiftMotor1");
         liftMotor2 = hardwareMap.dcMotor.get("LiftMotor2");
         pidController = new PIDController(LIFT_PID);
+
+        liftHallEffectSensor = hardwareMap.digitalChannel.get("dumpLiftMagneticTouch");
+        liftHallEffectSensor.setMode(DigitalChannel.Mode.INPUT);
     }
 
 
     private enum LiftMode{
-        DRIVERCONTROLLED,
-        HOLDPOSITION,
-        RUNTOPOSITION;
+        DRIVER_CONTROLLED,
+        HOLD_POSITION,
+        RUN_TO_POSITION,
+        MISSED_SENSOR;
+
     }
 
-    private LiftMode liftMode = LiftMode.HOLDPOSITION;
+    private LiftMode liftMode = LiftMode.HOLD_POSITION;
 
+    private DigitalChannel liftHallEffectSensor;
 
     public int getEncoderPosition(){
         return liftMotor1.getCurrentPosition() + encoderOffSet;
@@ -88,7 +96,11 @@ public class Lift {
         liftPower = power;
         liftMotor1.setPower(power);
         liftMotor2.setPower(power);
-        liftMode = LiftMode.DRIVERCONTROLLED;
+        liftMode = LiftMode.DRIVER_CONTROLLED;
+    }
+
+    private boolean isHallEffectSensorTriggered() {
+        return !liftHallEffectSensor.getState();
     }
 
     private int inchesToTicks(double inches) {
@@ -116,7 +128,7 @@ public class Lift {
 
         double liftPower;
         switch (liftMode){
-            case DRIVERCONTROLLED:
+            case DRIVER_CONTROLLED:
                 double start = getStartingPosition();
                 double max = getMaxLiftPosition();
                 double min = getMinLiftPosition();
@@ -133,30 +145,41 @@ public class Lift {
                     liftPower = this.liftPower;
 
                 } else {
-                    liftMode = LiftMode.HOLDPOSITION;
-                }
+                    liftMode = LiftMode.HOLD_POSITION;
+                };
                 update();
                 break;
 
-            case HOLDPOSITION:
+            case HOLD_POSITION:
                 double liftHeight = getLiftHeight();
                 double error = pidController.getError(liftHeight);
                 liftPower = pidController.update(error);
 
                 break;
 
-            case RUNTOPOSITION:
+            case RUN_TO_POSITION:
                 MotionState currrentState = liftProfile.get(System.currentTimeMillis() - startTime);
                 break;
+
+
+            case MISSED_SENSOR:
+                boolean hallEffectState = isHallEffectSensorTriggered();
+
+                if (hallEffectState) {
+                    liftPower = 0;
+
+                }
+
+
         }
     }
 
     public void driverControlled(){
-        liftMode = LiftMode.DRIVERCONTROLLED;
+        liftMode = LiftMode.DRIVER_CONTROLLED;
     }
 
     public void holdPosition(){
-        liftMode = LiftMode.HOLDPOSITION;
+        liftMode = LiftMode.HOLD_POSITION;
     }
 
     public void goToPosition(double position){
@@ -165,7 +188,7 @@ public class Lift {
                 new MotionState(position, 0, 0, 0),
                 1, 1, 1 //find real values eventually
         );
-        liftMode = LiftMode.RUNTOPOSITION;
+        liftMode = LiftMode.RUN_TO_POSITION;
         startTime = System.currentTimeMillis();
 
     }
