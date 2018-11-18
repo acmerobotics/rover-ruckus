@@ -16,12 +16,12 @@ import com.qualcomm.robotcore.hardware.Servo;
  */
 @Config
 public class Intake extends Subsystem{
-    public double RAKE_VELOCITY = 1;
-    public double RAKE_UP = 0;
-    public double RAKE_DOWN = 1;
-    public double RAKE_STOW = -1;
-    public double DUMP_RESET = 1;
-    public double DUMP_DUMP = 0;
+    public static double RAKE_VELOCITY = 1;
+    public static double RAKE_UP = .95;
+    public static double RAKE_DOWN = .5;
+    public static double RAKE_STOW = .05;
+    public static double DUMP_RESET = .95;
+    public static double DUMP_DUMP = 0.05;
 
     private double rakePosition = 0;
 
@@ -38,10 +38,10 @@ public class Intake extends Subsystem{
         intakeMotor = new CachingDcMotorEx(map.get(DcMotorEx.class, "intakeMotor"));
         robot.addMotor(intakeMotor);
 
-        rakeServo = new CachingServo(map.get(Servo.class, "rakeServo"));
+        rakeServo = new CachingServo(map.get(Servo.class, "rake"));
         robot.addMotor(rakeServo);
 
-        dumpServo = new CachingServo(map.get(Servo.class, "dumpServo"));
+        dumpServo = new CachingServo(map.get(Servo.class, "dump"));
         robot.addMotor(dumpServo);
     }
 
@@ -60,7 +60,7 @@ public class Intake extends Subsystem{
 
     private void setRakePosition(double position) {
         rakePosition = position;
-        rakeServo.setPosition(RAKE_UP);
+        rakeServo.setPosition(rakePosition);
     }
 
     public void rakeUp() {

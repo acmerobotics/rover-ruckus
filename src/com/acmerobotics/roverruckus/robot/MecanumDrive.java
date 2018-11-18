@@ -92,7 +92,7 @@ public class MecanumDrive extends Subsystem{
         motors[2].setDirection(DcMotorSimple.Direction.REVERSE);
         motors[3].setDirection(DcMotorSimple.Direction.REVERSE);
 
-        I2cDeviceSynch imuI2cDevice = LynxOptimizedI2cFactory.createLynxI2cDeviceSynch(hardwareMap.get(LynxModule.class, "leftHub"), 0);
+        I2cDeviceSynch imuI2cDevice = LynxOptimizedI2cFactory.createLynxI2cDeviceSynch(hardwareMap.get(LynxModule.class, "hub1"), 0);
         imuI2cDevice.setUserConfiguredName("imu");
         imu = new LynxEmbeddedIMU(imuI2cDevice);
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
@@ -101,8 +101,8 @@ public class MecanumDrive extends Subsystem{
 
         try {
             // axis remap
-            byte AXIS_MAP_CONFIG_BYTE = 0b00011000; //swaps y-z, 0b00100001 is y-x, 0x6 is x-z
-            byte AXIS_MAP_SIGN_BYTE = 0b000; //x, y, z
+            byte AXIS_MAP_CONFIG_BYTE = 0b00011000; //swaps y-z, 0b001000-01 is y-x, 0x6 is x-z
+            byte AXIS_MAP_SIGN_BYTE = 0b001; //x, y, z
 
             //Need to be in CONFIG mode to write to registers
             imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.CONFIG.bVal & 0x0F);

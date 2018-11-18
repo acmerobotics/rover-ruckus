@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
@@ -55,8 +56,11 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         telemetryLines = new ArrayList<>();
 
         drive = new MecanumDrive(this, map);
+        subsystems.add(drive);
         intake = new Intake(this, map);
+        subsystems.add(intake);
         lift = new Lift(this, map);
+        subsystems.add(lift);
 
         RobotLog.registerGlobalWarningSource(this);
         Activity activity = (Activity) opMode.hardwareMap.appContext;
@@ -64,26 +68,26 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         if (opModeManager != null) {
             opModeManager.registerListener(this);
         }
-
-        subsystemExecutor = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (!Thread.currentThread().isInterrupted()) {
-                    updateSubsystems();
-                }
-            }
-        });
-        subsystemExecutor.start();
-
-        telemetryExecutor = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (!Thread.currentThread().isInterrupted()) {
-                    updateTelemetry();
-                }
-            }
-        });
-        telemetryExecutor.start();
+//
+//        subsystemExecutor = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                while (!Thread.currentThread().isInterrupted()) {
+//                    updateSubsystems();
+//                }
+//            }
+//        });
+//        subsystemExecutor.start();
+//
+//        telemetryExecutor = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                while (!Thread.currentThread().isInterrupted()) {
+//                    updateTelemetry();
+//                }
+//            }
+//        });
+//        telemetryExecutor.start();
 //        motorExecutor.execute(new Runnable() {
 //            @Override
 //            public void run() {
@@ -106,18 +110,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         TelemetryPacket packet = new TelemetryPacket();
         packet.addTimestamp();
         for (Subsystem subsystem: subsystems) {
-//            try  {
                 subsystem.update(packet);
-
-//                synchronized (subsystemsWithProblem) {
-//                    subsystemsWithProblem.remove(subsystem);
-//                }
-//            } catch (Exception e) {
-//                Log.e("oops",e.getMessage());
-//                synchronized (subsystemsWithProblem) {
-//                    if (!subsystemsWithProblem.contains(subsystem)) subsystemsWithProblem.add(subsystem);
-//                }
-//            }
         }
         synchronized (telemetry) {
             packet.putAll(telemetry);
@@ -154,16 +147,16 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 
     public void updateTelemetry() {
         try {
-            FtcDashboard.getInstance().sendTelemetryPacket(packets.take());
+            FtcDashboard.getInstance().sendTelemetryPacket(packets.remove());
 
-        } catch (InterruptedException ie) {
+        } catch (NoSuchElementException nse) {
 
         }
     }
 
     public void stop() {
-        subsystemExecutor.interrupt();
-        telemetryExecutor.interrupt();
+//        subsystemExecutor.interrupt();
+//        telemetryExecutor.interrupt();
     }
 
 
@@ -219,17 +212,18 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 
     public void waitForAllSubsystems() {
         for (;;) {
+            update();
             boolean complete = true;
             for (Subsystem subsystem : subsystems) {
                 if (subsystem.isBusy()) complete = false;
             }
             if (complete) return;
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException ie) {
-                //yikes
-            }
         }
+    }
+
+    public void update() {
+        updateSubsystems();
+        updateTelemetry();
     }
 
 //    public void pause (long millis) {

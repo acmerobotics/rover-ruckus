@@ -4,6 +4,7 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roverruckus.robot.Robot;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="teleop")
 public class TeleOp extends OpMode {
 
     private Robot robot;
@@ -23,8 +24,8 @@ public class TeleOp extends OpMode {
         ));
 
         //lift
-        if (gamepad1.left_bumper) robot.lift.latch();
-        else if (gamepad1.right_bumper) robot.lift.unlatch();
+        if (gamepad1.a) robot.lift.latch();
+        else if (gamepad1.b) robot.lift.unlatch();
         robot.lift.setVelocty(gamepad1.right_trigger - gamepad1.left_trigger);
 
         //intake
@@ -35,7 +36,10 @@ public class TeleOp extends OpMode {
         else robot.intake.setRakeVelocity(gamepad2.left_stick_x);
         if (gamepad2.a) robot.intake.dumpDump();
         else robot.intake.resetDump();
-        robot.intake.setRakeVelocity(gamepad2.right_stick_y);
+        robot.intake.setArmPower(gamepad2.right_stick_y);
+
+        robot.updateSubsystems();
+        robot.updateTelemetry();
     }
 
 }

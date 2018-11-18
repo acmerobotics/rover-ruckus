@@ -32,9 +32,9 @@ public class Auto {
     public void run() {
         if (latched) {
             robot.lift.lower();
-            robot.lift.waitForCompleteion();
+            robot.update();
+            robot.waitForAllSubsystems();
         }
-
         robot.drive.followPath(paths.landerToSample());
         robot.drive.waitForCompleteion();
 

@@ -52,12 +52,7 @@ public class PathTest extends LinearOpMode{
 
         for (Path path: paths) {
             robot.drive.followPath(path);
-            while (robot.drive.isFollowingPath()) {
-                if (isStopRequested()) {
-                    robot.drive.stop();
-                    return;
-                }
-            }
+            robot.waitForAllSubsystems();
         }
 
 

@@ -35,10 +35,10 @@ public class Lift extends Subsystem{
 
     public static long WAIT_RELEASE = 1000;
 
-    public static double LATCH_ENGAGE = 0;
-    public static double LATCH_DISENGAGE = 0;
-    public static double RATCHET_ENGAGE = 0;
-    public static double RATCHET_DISENGAGE = 0;
+    public static double LATCH_ENGAGE = .15;
+    public static double LATCH_DISENGAGE = .9;
+    public static double RATCHET_ENGAGE = .1;
+    public static double RATCHET_DISENGAGE = .5;
     public static double MARKER_UP = 0;
     public static double MARKER_DOWN = 1;
 
@@ -65,10 +65,10 @@ public class Lift extends Subsystem{
     private LiftMode liftMode = LiftMode.LATCHED;
 
     public Lift(Robot robot, HardwareMap hardwareMap){
-        motor1 = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "LiftMotor1"));
+        motor1 = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "liftMotor1"));
         robot.addMotor(motor1);
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
-        motor2 = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "LiftMotor2"));
+        motor2 = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "liftMotor2"));
         robot.addMotor(motor2);
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
         setPosition(0);
@@ -99,27 +99,26 @@ public class Lift extends Subsystem{
         packet.put("position", getPosition());
 
         switch (liftMode) {
-            case LATCHED:
-                engageLatchAndRatchet();
-                break;
-           case LOWERING:
-               disengageRatchet();
-               double error = getPosition() - LOWER_DISTANCE;
-               packet.put("liftError", error);
-               if (Math.abs(error) < LOWER_TOLERANCE) {
-                   internalSetVelocity(0);
-                   liftMode = LiftMode.RELEASING;
-                   waitTime = System.currentTimeMillis() + WAIT_RELEASE;
-                   break;
-               }
-               internalSetVelocity(pidController.update(error));
-               break;
-
-
-           case RELEASING:
-               disengageLatch();
-               if (System.currentTimeMillis() < waitTime) break;
-               break;
+//            case LATCHED:
+//                break;
+//           case LOWERING:
+////               disengageRatchet();
+//               double error = getPosition() - LOWER_DISTANCE;
+//               packet.put("liftError", error);
+//               if (Math.abs(error) < LOWER_TOLERANCE) {
+//                   internalSetVelocity(0);
+//                   liftMode = LiftMode.RELEASING;
+//                   waitTime = System.currentTimeMillis() + WAIT_RELEASE;
+//                   break;
+//               }
+//               internalSetVelocity(pidController.update(error));
+//               break;
+//
+//
+//           case RELEASING:
+////               disengageLatch();
+//               if (System.currentTimeMillis() < waitTime) break;
+//               break;
 
 
 
@@ -129,34 +128,30 @@ public class Lift extends Subsystem{
 
 
     public void setVelocty (double v) {
-        if (liftMode == LiftMode.LATCHED) {
-            if (v <= 0) internalSetVelocity(v); // todo check this sign
-            return;
-        }
 
         internalSetVelocity(v);
         liftMode = LiftMode.DRIVER_CONTROLLED;
     }
 
     private void internalSetVelocity (double v) {
-        motor1.setVelocity(v / RADIUS, AngleUnit.RADIANS);
-        motor2.setVelocity(v / RADIUS, AngleUnit.RADIANS);
+        motor1.setPower(v);
+        motor2.setPower(v);
     }
 
 
     private void disengageRatchet() {
         ratchet.setPosition(RATCHET_DISENGAGE);
-        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
 
     private void engageLatchAndRatchet() {
         latch.setPosition(LATCH_ENGAGE);
         ratchet.setPosition(RATCHET_ENGAGE);
         liftMode = LiftMode.LATCHED;
-        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        internalSetVelocity(0);
+//        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+//        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+//        internalSetVelocity(0);
     }
 
     private void disengageLatch() {
