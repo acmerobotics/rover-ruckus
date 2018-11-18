@@ -1,4 +1,4 @@
-package com.acmerobotics.library.hardware;
+package com.acmerobotics.roverruckus.hardware;
 
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchImplOnSimple;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchSimple;

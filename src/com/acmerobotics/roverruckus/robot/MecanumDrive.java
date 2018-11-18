@@ -8,11 +8,16 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.drive.Kinematics;
 import com.acmerobotics.roadrunner.drive.MecanumKinematics;
 import com.acmerobotics.roadrunner.path.Path;
+import com.acmerobotics.roverruckus.hardware.LynxOptimizedI2cFactory;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.util.Range;
 
@@ -60,9 +65,12 @@ public class MecanumDrive extends Subsystem{
     private boolean estimatingPose = true;
     private double[] lastWheelPositions = new double[4];
     private long lastUpdate = 0;
+    private double lastHeading = 0;
 
     public Trajectory trajectory;
     private long startTime;
+
+    private BNO055IMU imu;
 
     private enum Mode {
         OPEN_LOOP,
@@ -83,6 +91,37 @@ public class MecanumDrive extends Subsystem{
         motors[1].setDirection(DcMotorSimple.Direction.FORWARD);
         motors[2].setDirection(DcMotorSimple.Direction.REVERSE);
         motors[3].setDirection(DcMotorSimple.Direction.REVERSE);
+
+        I2cDeviceSynch imuI2cDevice = LynxOptimizedI2cFactory.createLynxI2cDeviceSynch(hardwareMap.get(LynxModule.class, "leftHub"), 0);
+        imuI2cDevice.setUserConfiguredName("imu");
+        imu = new LynxEmbeddedIMU(imuI2cDevice);
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
+        imu.initialize(parameters);
+
+        try {
+            // axis remap
+            byte AXIS_MAP_CONFIG_BYTE = 0b00011000; //swaps y-z, 0b00100001 is y-x, 0x6 is x-z
+            byte AXIS_MAP_SIGN_BYTE = 0b000; //x, y, z
+
+            //Need to be in CONFIG mode to write to registers
+            imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.CONFIG.bVal & 0x0F);
+
+            Thread.sleep(100); //Changing modes requires a delay before doing anything else
+
+            //Write to the AXIS_MAP_CONFIG register
+            imu.write8(BNO055IMU.Register.AXIS_MAP_CONFIG, AXIS_MAP_CONFIG_BYTE & 0x0F);
+
+            //Write to the AXIS_MAP_SIGN register
+            imu.write8(BNO055IMU.Register.AXIS_MAP_SIGN, AXIS_MAP_SIGN_BYTE & 0x0F);
+
+            //Need to change back into the IMU mode to use the gyro
+            imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.IMU.bVal & 0x0F);
+
+            Thread.sleep(100); //Changing modes again requires a delay
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
     }
 
@@ -155,6 +194,7 @@ public class MecanumDrive extends Subsystem{
     private void updatePoseEstimate() {
         if (lastUpdate == 0) {
             lastUpdate = System.currentTimeMillis();
+            lastHeading = imu.getAngularOrientation().firstAngle;
             for (int i = 0; i < 4; i++) {
                 lastWheelPositions[i] = motors[i].getCurrentPosition();
             }
@@ -169,8 +209,10 @@ public class MecanumDrive extends Subsystem{
             lastWheelPositions[i] = pos;
         }
         Pose2d v = MecanumKinematics.wheelToRobotVelocities(wheelVelocities, 16, 16);
-        Pose2d delta = v.times(1);
-        currentEstimatedPose = Kinematics.relativeOdometryUpdate(currentEstimatedPose, delta);
+        double currentHeadding = imu.getAngularOrientation().firstAngle;
+        v = new Pose2d(v.pos(), currentHeadding - lastHeading);
+        lastHeading = currentHeadding;
+        currentEstimatedPose = Kinematics.relativeOdometryUpdate(currentEstimatedPose, v);
     }
 
     public void setMotorPIDF(double p, double i, double d, double f) {

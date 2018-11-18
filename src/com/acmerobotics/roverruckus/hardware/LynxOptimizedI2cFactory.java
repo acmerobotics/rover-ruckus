@@ -1,4 +1,4 @@
-package com.acmerobotics.library.hardware;
+package com.acmerobotics.roverruckus.hardware;
 
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.lynx.commands.core.LynxFirmwareVersionManager;

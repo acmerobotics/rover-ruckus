@@ -49,7 +49,6 @@ public class Trajectory {
         Pose2d targetPose = path.get(axialProfile.get(t).getX());
         double theta = path.deriv(axialProfile.get(t).getX()).pos().angle();
 
-
         Pose2d targetVelocity = path.deriv(axialProfile.get(t).getX()).times(axialProfile.get(t).getV());
 
         Vector2d trackingError = pose.pos().minus(targetPose.pos()).rotated(-theta);

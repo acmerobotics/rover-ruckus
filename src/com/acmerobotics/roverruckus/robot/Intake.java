@@ -1,111 +1,98 @@
 package com.acmerobotics.roverruckus.robot;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roverruckus.util.PIDController;
-import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
 
 /**
  * Created by Emma Sheffo on 11/16/2018.
  */
+@Config
+public class Intake extends Subsystem{
+    public double RAKE_VELOCITY = 1;
+    public double RAKE_UP = 0;
+    public double RAKE_DOWN = 1;
+    public double RAKE_STOW = -1;
+    public double DUMP_RESET = 1;
+    public double DUMP_DUMP = 0;
 
-public class Rake extends Subsystem{
+    private double rakePosition = 0;
 
-    public static double ARM_PULLEY_RADIUS = 0.6835; // in
-    public static double MAX_EXTENSION_DISTANCE = 41;
-    public static PIDCoefficients ARM_PID = new PIDCoefficients(-3, 0, -0.04);
+    private CachingDcMotorEx rakeMotor, intakeMotor;
 
-    public enum ArmMode {
-        PID,
-        MANUAL
-    }
+    private CachingServo rakeServo, dumpServo;
 
+    public Intake(Robot robot, HardwareMap map) {
 
-    private DcMotor rakeArm;
+        rakeMotor = new CachingDcMotorEx(map.get(DcMotorEx.class,"rakeMotor"));
+        rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
+        robot.addMotor(rakeMotor);
 
-    private int encoderOffset;
+        intakeMotor = new CachingDcMotorEx(map.get(DcMotorEx.class, "intakeMotor"));
+        robot.addMotor(intakeMotor);
 
-    private PIDController armController;
-    private double armPower;
+        rakeServo = new CachingServo(map.get(Servo.class, "rakeServo"));
+        robot.addMotor(rakeServo);
 
-    private ArmMode armMode = ArmMode.MANUAL;
-
-    private TelemetryData telemetryData;
-
-    private class TelemetryData {
-        public ArmMode rakeArmMode;
-        public double rakeArmPower;
-        public double rakeArmPosition;
-        public double rakeArmError;
-    }
-
-    public Rake(HardwareMap map) {
-        telemetryData = new TelemetryData();
-
-        rakeArm = new CachingDcMotorEx(map.get(DcMotorEx.class,"rakeArm"));
-        rakeArm.setDirection(DcMotorSimple.Direction.REVERSE);
-
-        armController = new PIDController(ARM_PID);
-
+        dumpServo = new CachingServo(map.get(Servo.class, "dumpServo"));
+        robot.addMotor(dumpServo);
     }
 
     public void setArmPower(double power) {
-        armPower = power;
-        armMode = ArmMode.MANUAL;
-    }
-
-    public void setArmPosition(double distance) {
-        armController.setSetpoint(distance);
-        armController.reset();
-        armMode = ArmMode.PID;
-    }
-
-    public void resetEncoder() {
-        encoderOffset = rakeArm.getCurrentPosition();
-    }
-
-    public int getEncoderPosition() {
-        return rakeArm.getCurrentPosition() - encoderOffset;
-    }
-
-    public double getArmPosition() {
-        int encoderPosition = getEncoderPosition();
-        double revs = encoderPosition / rakeArm.getMotorType().getTicksPerRev();
-        return 2 * Math.PI * ARM_PULLEY_RADIUS * revs;
-    }
-
-    public ArmMode getArmMode() {
-        return armMode;
+        rakeMotor.setPower(power);
     }
 
     @Override
     public void update(TelemetryPacket packet) {
 
-        switch (armMode) {
-            case MANUAL:
-                break;
-            case PID:
-                double armPosition = getArmPosition();
-                double armError = armController.getError(armPosition);
-                armPower = armController.update(armError);
-
-                telemetryData.rakeArmPosition = armPosition;
-                telemetryData.rakeArmError = armError;
-
-                break;
-        }
-
-        rakeArm.setPower(armPower);
-
-        telemetryData.rakeArmMode = armMode;
-        telemetryData.rakeArmPower = armPower;
-
-
     }
 
+    public void setIntakePower(double power) {
+        intakeMotor.setPower(power);
+    }
+
+    private void setRakePosition(double position) {
+        rakePosition = position;
+        rakeServo.setPosition(RAKE_UP);
+    }
+
+    public void rakeUp() {
+        setRakePosition(RAKE_UP);
+    }
+
+    public void rakeStow() {
+        setRakePosition(RAKE_STOW);
+    }
+
+    public void rakeDown() {
+        setRakePosition(RAKE_DOWN);
+    }
+
+    long lastTime = 0;
+    public void setRakeVelocity(double v) {
+        if (lastTime == 0) {
+            lastTime = System.currentTimeMillis();
+        }
+        long now = System.currentTimeMillis();
+        double dt = (now - lastTime) / 1000.0;
+        lastTime = now;
+        rakePosition += dt * RAKE_VELOCITY * v;
+    }
+
+    public void dumpDump() {
+        dumpServo.setPosition(DUMP_DUMP);
+    }
+
+    public void resetDump() {
+        dumpServo.setPosition(DUMP_RESET);
+    }
 
 }
 

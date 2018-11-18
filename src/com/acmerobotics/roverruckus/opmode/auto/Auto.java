@@ -32,16 +32,15 @@ public class Auto {
     public void run() {
         if (latched) {
             robot.lift.lower();
-        } else {
-            robot.lift.calibrate();
+            robot.lift.waitForCompleteion();
         }
-        robot.lift.waitForCompleteion();
 
         robot.drive.followPath(paths.landerToSample());
         robot.drive.waitForCompleteion();
 
         robot.drive.followPath(paths.sampleToDepot());
         robot.drive.waitForCompleteion();
+        robot.lift.markerDown();
 
         //dropOff
 

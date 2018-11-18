@@ -5,17 +5,17 @@ import com.acmerobotics.roverruckus.opmode.auto.Auto;
 
 public class BasicCraterPaths extends AutoPaths{
     @Override
-    public Path landerToSample(Auto.START_LOCATION start) {
+    public Path landerToSample() {
         return null;
     }
 
     @Override
-    public Path sampleToDepot(Auto.START_LOCATION start) {
+    public Path sampleToDepot() {
         return null;
     }
 
     @Override
-    public Path depotToPark(Auto.START_LOCATION start) {
+    public Path depotToPark() {
         return null;
     }
 }

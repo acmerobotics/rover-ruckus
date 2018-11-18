@@ -28,6 +28,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 
     public MecanumDrive drive;
     public Lift lift;
+    public Intake intake;
     private final List<Subsystem> subsystems;
     private final List<Subsystem> subsystemsWithProblem;
 
@@ -53,23 +54,9 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         telemetry = new HashMap<>();
         telemetryLines = new ArrayList<>();
 
-        try {
-            drive = new MecanumDrive(this, map);
-            subsystems.add(drive);
-        } catch (Exception e) {
-            synchronized(subsystemsWithProblem) {
-                if (!subsystemsWithProblem.contains(drive)) subsystemsWithProblem.add(drive);
-            }
-        }
-
-        try {
-            lift = new Lift(this, map);
-            subsystems.add(lift);
-        } catch (Exception e) {
-            synchronized(subsystemsWithProblem) {
-                if (!subsystemsWithProblem.contains(lift)) subsystemsWithProblem.add(lift);
-            }
-        }
+        drive = new MecanumDrive(this, map);
+        intake = new Intake(this, map);
+        lift = new Lift(this, map);
 
         RobotLog.registerGlobalWarningSource(this);
         Activity activity = (Activity) opMode.hardwareMap.appContext;
@@ -119,17 +106,18 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         TelemetryPacket packet = new TelemetryPacket();
         packet.addTimestamp();
         for (Subsystem subsystem: subsystems) {
-            try  {
+//            try  {
                 subsystem.update(packet);
 
-                synchronized (subsystemsWithProblem) {
-                    subsystemsWithProblem.remove(subsystem);
-                }
-            } catch (Exception e) {
-                synchronized (subsystemsWithProblem) {
-                    if (!subsystemsWithProblem.contains(subsystem)) subsystemsWithProblem.add(drive);
-                }
-            }
+//                synchronized (subsystemsWithProblem) {
+//                    subsystemsWithProblem.remove(subsystem);
+//                }
+//            } catch (Exception e) {
+//                Log.e("oops",e.getMessage());
+//                synchronized (subsystemsWithProblem) {
+//                    if (!subsystemsWithProblem.contains(subsystem)) subsystemsWithProblem.add(subsystem);
+//                }
+//            }
         }
         synchronized (telemetry) {
             packet.putAll(telemetry);
@@ -206,7 +194,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     public String getGlobalWarning() {
         StringBuilder builder = new StringBuilder();
         for (Subsystem subsystem: subsystemsWithProblem) {
-            builder.append(subsystem.getClass().getSimpleName());
+            builder.append(subsystem.getClass().getName());
             builder.append('\n');
         }
         return builder.toString();
@@ -246,7 +234,8 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 
 //    public void pause (long millis) {
 //        long start = System.currentTimeMillis();
-//        long remaining;
+//
+// long remaining;
 //        while ((remaining = (millis - (System.currentTimeMillis() - start)) > 0) {
 //            try {
 //                Thread.sleep(end - System.currentTimeMillis());
