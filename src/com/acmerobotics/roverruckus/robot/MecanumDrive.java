@@ -240,4 +240,7 @@ public class MecanumDrive extends Subsystem{
         return isFollowingPath();
     }
 
+    public void setCurrentEstimatedPose(Pose2d pose) {
+        currentEstimatedPose = pose;
+    }
 }

@@ -29,12 +29,12 @@ public class Auto {
         robot = new Robot(opMode, map);
     }
 
-    public void run() {
+    public void run()git{
         if (latched) {
             robot.lift.lower();
             robot.lift.waitForCompleteion();
         }
-
+        robot.drive.setCurrentEstimatedPose(paths.landerToSample().start());
         robot.drive.followPath(paths.landerToSample());
         robot.drive.waitForCompleteion();
 
