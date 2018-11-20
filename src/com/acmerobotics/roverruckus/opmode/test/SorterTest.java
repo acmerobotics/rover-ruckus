@@ -3,6 +3,7 @@ package com.acmerobotics.roverruckus.opmode.test;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -13,6 +14,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 @Config
 @TeleOp(name="sorterTest")
+@Disabled
 public class SorterTest extends LinearOpMode{
 
     public static double threshold = 2;

@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -36,6 +37,7 @@ public class Intake extends Subsystem{
         robot.addMotor(rakeMotor);
 
         intakeMotor = new CachingDcMotorEx(map.get(DcMotorEx.class, "intakeMotor"));
+        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         robot.addMotor(intakeMotor);
 
         rakeServo = new CachingServo(map.get(Servo.class, "rake"));
@@ -51,7 +53,7 @@ public class Intake extends Subsystem{
 
     @Override
     public void update(TelemetryPacket packet) {
-
+//        packet.put("intakeBusy", isBusy());
     }
 
     public void setIntakePower(double power) {

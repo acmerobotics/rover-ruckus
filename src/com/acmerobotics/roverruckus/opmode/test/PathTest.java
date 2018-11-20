@@ -12,6 +12,7 @@ import com.acmerobotics.roadrunner.path.heading.LinearInterpolator;
 import com.acmerobotics.roverruckus.robot.MecanumDrive;
 import com.acmerobotics.roverruckus.robot.Robot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Autonomous(name="pathTest")
+@Disabled
 @Config
 public class PathTest extends LinearOpMode{
 

@@ -2,10 +2,12 @@ package com.acmerobotics.roverruckus.opmode.demo;
 
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roverruckus.robot.Robot;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 @TeleOp(group="demo", name="demo")
+@Disabled
 public class DemoTeleop extends LinearOpMode {
 
     @Override

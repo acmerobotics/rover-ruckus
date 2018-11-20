@@ -10,6 +10,7 @@ public class Auto {
     private Robot robot;
     private HardwareMap map;
     private OpMode opMode;
+    private Running running;
     private AutoPaths paths;
 
     public enum START_LOCATION {
@@ -19,8 +20,9 @@ public class Auto {
     private START_LOCATION start_location;
     private boolean latched;
 
-    public Auto (OpMode opMode, HardwareMap map, START_LOCATION start_location, boolean latched) {
+    public Auto (OpMode opMode, Running running, HardwareMap map, START_LOCATION start_location, boolean latched) {
         this.opMode = opMode;
+        this.running = running;
         this.map = map;
         this.start_location = start_location;
         this.latched = latched;
@@ -29,24 +31,30 @@ public class Auto {
         robot = new Robot(opMode, map);
     }
 
-    public void run() {
+    public void run(){
         if (latched) {
             robot.lift.lower();
             robot.update();
-            robot.waitForAllSubsystems();
+            waitForPathCompletion();
         }
-        robot.drive.followPath(paths.landerToSample());
-        robot.drive.waitForCompleteion();
+        robot.drive.setCurrentEstimatedPose(paths.lander);
 
-        robot.drive.followPath(paths.sampleToDepot());
-        robot.drive.waitForCompleteion();
+        robot.drive.followPath(paths.landerToDepot());
+        waitForPathCompletion();
+
         robot.lift.markerDown();
 
         //dropOff
 
         robot.drive.followPath(paths.depotToPark());
-        robot.drive.waitForCompleteion();
+        waitForPathCompletion();
 
+    }
+
+    public void waitForPathCompletion() {
+        while (running.running() && robot.drive.isFollowingPath()) {
+            robot.update();
+        }
     }
 
 }

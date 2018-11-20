@@ -39,8 +39,8 @@ public class Lift extends Subsystem{
     public static double LATCH_DISENGAGE = .9;
     public static double RATCHET_ENGAGE = .1;
     public static double RATCHET_DISENGAGE = .5;
-    public static double MARKER_UP = 0;
-    public static double MARKER_DOWN = 1;
+    public static double MARKER_UP = .15;
+    public static double MARKER_DOWN = .9;
 
     private CachingDcMotorEx motor1, motor2;
     private CachingServo ratchet, latch, marker;
@@ -83,6 +83,7 @@ public class Lift extends Subsystem{
         pidController = new PIDController(pidCoefficients);
 
         engageLatchAndRatchet();
+        markerUp();
     }
 
     private double getPosition() {
@@ -97,6 +98,7 @@ public class Lift extends Subsystem{
     protected void update(TelemetryPacket packet){
         packet.put("lift mode", liftMode.toString());
         packet.put("position", getPosition());
+
 
         switch (liftMode) {
 //            case LATCHED:

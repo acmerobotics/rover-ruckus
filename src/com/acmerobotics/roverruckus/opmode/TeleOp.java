@@ -1,4 +1,4 @@
-package com.acmerobotics.roverruckus.opmode.tuning;
+package com.acmerobotics.roverruckus.opmode;
 
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roverruckus.robot.Robot;
@@ -33,7 +33,7 @@ public class TeleOp extends OpMode {
         if (gamepad2.dpad_down) robot.intake.rakeStow();
         else if (gamepad2.dpad_left) robot.intake.rakeDown();
         else if (gamepad2.dpad_up) robot.intake.rakeUp();
-        else robot.intake.setRakeVelocity(gamepad2.left_stick_x);
+        else robot.intake.setRakeVelocity(-.5 * gamepad2.left_stick_x);
         if (gamepad2.a) robot.intake.dumpDump();
         else robot.intake.resetDump();
         robot.intake.setArmPower(gamepad2.right_stick_y);

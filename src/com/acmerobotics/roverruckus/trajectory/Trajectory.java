@@ -36,9 +36,9 @@ public class Trajectory {
         );
         duration = axialProfile.duration();
 
-        this.axialController = new PIDController();
-        this.lateralController = new PIDController();
-        this.headingController = new PIDController();
+        this.axialController = new PIDController(-1,0,0);
+        this.lateralController = new PIDController(-1, 0, 0);
+        this.headingController = new PIDController(-1, 0, 0);
 
     }
 

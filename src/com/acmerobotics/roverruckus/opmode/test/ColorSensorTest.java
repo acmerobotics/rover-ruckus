@@ -2,10 +2,12 @@ package com.acmerobotics.roverruckus.opmode.test;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 
 @Autonomous(name="colorSensorTest")
+@Disabled
 public class ColorSensorTest extends LinearOpMode {
 
     @Override

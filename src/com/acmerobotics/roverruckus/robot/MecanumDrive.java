@@ -38,10 +38,10 @@ public class MecanumDrive extends Subsystem{
             "m3"
     };
     private static final Vector2d[] wheelPositions = {
-            new Vector2d(8,8),
-            new Vector2d(-8, 8),
-            new Vector2d(-8,-8),
-            new Vector2d(8, -8)
+            new Vector2d(5.5,7.5),
+            new Vector2d(-5.5, 7.5),
+            new Vector2d(-5.5,-7.5),
+            new Vector2d(5.5, -7.5)
     };
     private static final Vector2d[] rotorDirections = {
             new Vector2d(1,-1),
@@ -52,7 +52,7 @@ public class MecanumDrive extends Subsystem{
     private static final double radius = 2;
     private static final double ticksPerInch = (2240 * 4) / (radius * 2 * Math.PI);
 
-    public static double axialMaxV = 50;
+    public static double axialMaxV = 10;
     public static double axialMaxA = 10;
     public static double axialMaxJ = 10;
 
@@ -144,7 +144,7 @@ public class MecanumDrive extends Subsystem{
      */
     public void setVelocity (Pose2d target) {
         double v = target.pos().norm();
-        v = Range.clip(v, -1, 1) * axialMaxV;
+        v = Range.clip(v, -1, 1) * 45;
         double theta = Math.atan2(target.getX(), target.getY());
         double omega = target.getHeading() * headingMaxV;
 
@@ -240,4 +240,8 @@ public class MecanumDrive extends Subsystem{
         return isFollowingPath();
     }
 
+    public void setCurrentEstimatedPose(Pose2d pose) {
+        lastHeading = imu.getAngularOrientation().firstAngle;
+        currentEstimatedPose = pose;
+    }
 }

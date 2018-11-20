@@ -13,6 +13,7 @@ import com.acmerobotics.roverruckus.robot.MecanumDrive;
 import com.acmerobotics.roverruckus.robot.Robot;
 import com.acmerobotics.roverruckus.util.CautiousBinarySearch;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
@@ -25,6 +26,7 @@ import java.util.Vector;
 
 @Config
 @Autonomous(name="drivetrainPIDFTuning")
+@Disabled
 public class DrivetrainPIDFTuning extends LinearOpMode{
 
     public static double p, i, d, f;
