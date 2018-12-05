@@ -2,14 +2,12 @@ package com.acmerobotics.roverruckus.robot;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roverruckus.util.PIDController;
-import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
+import com.acmerobotics.roverruckus.hardware.CachingServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 
 /**
@@ -32,11 +30,11 @@ public class Intake extends Subsystem{
 
     public Intake(Robot robot, HardwareMap map) {
 
-        rakeMotor = new CachingDcMotorEx(map.get(DcMotorEx.class,"rakeMotor"));
+        rakeMotor = new CachingDcMotorEx(robot, map.get(DcMotorEx.class,"rakeMotor"), 1);
         rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
         robot.addMotor(rakeMotor);
 
-        intakeMotor = new CachingDcMotorEx(map.get(DcMotorEx.class, "intakeMotor"));
+        intakeMotor = new CachingDcMotorEx(robot, map.get(DcMotorEx.class, "intakeMotor"), 1);
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         robot.addMotor(intakeMotor);
 

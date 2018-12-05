@@ -8,6 +8,7 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.drive.Kinematics;
 import com.acmerobotics.roadrunner.drive.MecanumKinematics;
 import com.acmerobotics.roadrunner.path.Path;
+import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
 import com.acmerobotics.roverruckus.hardware.LynxOptimizedI2cFactory;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -30,12 +31,15 @@ import java.util.List;
 @Config
 public class MecanumDrive extends Subsystem{
 
-    private CachingDcMotorEx[] motors;
+    private DcMotorEx[] motors;
     private static final String[] motorNames = {
             "m0",
             "m1",
             "m2",
             "m3"
+    };
+    private static final int[] hubs = {
+            0, 0, 0, 0
     };
     private static final Vector2d[] wheelPositions = {
             new Vector2d(5.5,7.5),
@@ -69,6 +73,7 @@ public class MecanumDrive extends Subsystem{
 
     public Trajectory trajectory;
     private long startTime;
+    private Robot robot;
 
     private BNO055IMU imu;
 
@@ -80,12 +85,13 @@ public class MecanumDrive extends Subsystem{
     private Mode currentMode = Mode.OPEN_LOOP;
 
     public MecanumDrive(Robot robot, HardwareMap hardwareMap) {
-        motors = new CachingDcMotorEx[motorNames.length];
+        this.robot = robot;
+        motors = new DcMotorEx[motorNames.length];
         for (int i = 0; i < motorNames.length; i++) {
-            motors[i] = new CachingDcMotorEx((DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[i]));
+            motors[i] = (DcMotorEx) hardwareMap.get(DcMotor.class, motorNames[i]);
             motors[i].setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             motors[i].setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            robot.addMotor(motors[i]);
+//            robot.addMotor(motors[i]);
         }
         motors[0].setDirection(DcMotorSimple.Direction.FORWARD);
         motors[1].setDirection(DcMotorSimple.Direction.FORWARD);
@@ -131,7 +137,12 @@ public class MecanumDrive extends Subsystem{
               v.getX() - v.getHeading() * wheelPositions[i].getY(),
               v.getY() + v.getHeading() * wheelPositions[i].getX()
             );
+            robot.addTelemetry("omegaaaaa", v.getHeading());
+            robot.addTelemetry("wheelPos" + i + "x", wheelPositions[i].getX());
+            robot.addTelemetry("wheel" + i + "x", rotorVelocity.getX());
+            robot.addTelemetry("wheel" + i + "y", rotorVelocity.getY());
             double surfaceVelocity = rotorVelocity.dot(rotorDirections[i]);
+            robot.addTelemetry("surface" + i, surfaceVelocity);
             double wheelVelocity = surfaceVelocity / radius;
             motors[i].setVelocity(wheelVelocity, AngleUnit.RADIANS);
         }
@@ -149,6 +160,7 @@ public class MecanumDrive extends Subsystem{
         double omega = target.getHeading() * headingMaxV;
 
         targetVelocity = new Pose2d(v * Math.cos(theta), v * Math.sin(theta), omega);
+
     }
 
     public void followPath (Path path) {
@@ -172,6 +184,7 @@ public class MecanumDrive extends Subsystem{
 
     @Override
     public void update(TelemetryPacket packet) {
+        packet.put("mode", currentMode);
         if (estimatingPose) {
             updatePoseEstimate();
             drawPose(packet.fieldOverlay(), currentEstimatedPose, "red");
@@ -180,6 +193,9 @@ public class MecanumDrive extends Subsystem{
 
         switch (currentMode) {
             case OPEN_LOOP:
+                packet.put("vX", targetVelocity.getX());
+                packet.put("vY", targetVelocity.getY());
+                packet.put("vOmega", targetVelocity.getHeading());
                 internalSetVelocity(targetVelocity);
                 break;
 

@@ -1,4 +1,4 @@
-package com.acmerobotics.roverruckus.robot;
+package com.acmerobotics.roverruckus.hardware;
 
 public interface CachingMotor {
 

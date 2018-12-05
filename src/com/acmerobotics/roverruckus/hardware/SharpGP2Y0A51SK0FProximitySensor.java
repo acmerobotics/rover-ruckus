@@ -5,7 +5,29 @@ import com.qualcomm.robotcore.hardware.HardwareDevice;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-public class SharpGP2Y0A51SK0FProximitySensor implements HardwareDevice {
+public class SharpGP2Y0A51SK0FProximitySensor implements HardwareDevice, CachingSensor {
+    private boolean enabled = true;
+    private boolean updated = false;
+    private double voltage = 0;
+    @Override
+    public synchronized void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
+    public synchronized boolean updated() {
+        return updated();
+    }
+
+    @Override
+    public synchronized void update() {
+        updated = false;
+        if (enabled) {
+            voltage = input.getVoltage();
+            updated = true;
+        }
+    }
+
     // TODO: are the parameters constant for all surfaces?
     public enum Surface {
         CRYPTO(7.26557, -1.49673, -0.264094, 2.54, 1.55966);
@@ -43,11 +65,11 @@ public class SharpGP2Y0A51SK0FProximitySensor implements HardwareDevice {
     }
 
     public double getRawDistance(Surface surface) {
-        return surface.getRawDistance(input.getVoltage());
+        return surface.getRawDistance(voltage);
     }
 
     public double getDistance(Surface surface, DistanceUnit unit) {
-        return surface.getDistance(input.getVoltage(), unit);
+        return surface.getDistance(voltage, unit);
     }
 
     @Override

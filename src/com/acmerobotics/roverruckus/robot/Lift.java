@@ -2,23 +2,14 @@ package com.acmerobotics.roverruckus.robot;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roadrunner.profile.MotionConstraints;
-import com.acmerobotics.roadrunner.profile.MotionProfile;
-import com.acmerobotics.roadrunner.profile.MotionProfileBuilder;
-import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
-import com.acmerobotics.roadrunner.profile.MotionState;
+import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
+import com.acmerobotics.roverruckus.hardware.CachingServo;
 import com.acmerobotics.roverruckus.util.PIDController;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import java.util.Arrays;
 
@@ -65,10 +56,10 @@ public class Lift extends Subsystem{
     private LiftMode liftMode = LiftMode.LATCHED;
 
     public Lift(Robot robot, HardwareMap hardwareMap){
-        motor1 = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "liftMotor1"));
+        motor1 = new CachingDcMotorEx(robot, hardwareMap.get(DcMotorEx.class, "liftMotor1"), 1);
         robot.addMotor(motor1);
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
-        motor2 = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "liftMotor2"));
+        motor2 = new CachingDcMotorEx(robot, hardwareMap.get(DcMotorEx.class, "liftMotor2"), 1);
         robot.addMotor(motor2);
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
         setPosition(0);

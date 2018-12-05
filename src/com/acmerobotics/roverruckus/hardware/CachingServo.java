@@ -1,4 +1,4 @@
-package com.acmerobotics.roverruckus.robot;
+package com.acmerobotics.roverruckus.hardware;
 
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoController;

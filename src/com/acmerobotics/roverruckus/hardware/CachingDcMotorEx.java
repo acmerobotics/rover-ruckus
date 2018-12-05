@@ -1,24 +1,37 @@
-package com.acmerobotics.roverruckus.robot;
+package com.acmerobotics.roverruckus.hardware;
 
+import android.util.Log;
+
+import com.acmerobotics.roverruckus.robot.Robot;
+import com.qualcomm.hardware.lynx.LynxNackException;
+import com.qualcomm.hardware.lynx.commands.core.LynxGetMotorChannelEnableCommand;
+import com.qualcomm.hardware.lynx.commands.core.LynxGetMotorChannelEnableResponse;
+import com.qualcomm.hardware.lynx.commands.core.LynxSetDIODirectionCommand;
+import com.qualcomm.hardware.lynx.commands.core.LynxSetMotorChannelEnableCommand;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 public class CachingDcMotorEx implements DcMotorEx, CachingMotor{
 
-    private  DcMotorEx delegate;
+    private Robot robot;
+    private DcMotorEx delegate;
+    private int hub;
     private double cachedPower = 0;
     private double cachedVelocity = 0;
     private boolean needsPowerUpdate = false;
     private boolean needsVelocityUpdate = false;
     private AngleUnit angleUnit = AngleUnit.RADIANS;
 
-    public CachingDcMotorEx (DcMotorEx motorEx) {
-        delegate = motorEx;
+    public CachingDcMotorEx (Robot robot, DcMotorEx delegate, int hub) {
+        this.robot = robot;
+        this.delegate = delegate;
+        this.hub = hub;
     }
 
     @Override
@@ -27,7 +40,7 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor{
     }
 
     @Override
-    public Direction getDirection() {
+    public synchronized Direction getDirection() {
         return delegate.getDirection();
     }
 
@@ -43,11 +56,12 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor{
 
     @Override
     public synchronized double getPower() {
-        return delegate.getPower();
+        return cachedPower;
     }
 
     @Override
     public synchronized void update() {
+        robot.addTelemetry("motorUpdated", "I guess");
         synchronized (this) {
             if (needsPowerUpdate) delegate.setPower(cachedPower);
             if (needsVelocityUpdate) delegate.setVelocity(cachedVelocity, angleUnit);
@@ -87,12 +101,12 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor{
 
     @Override
     public synchronized double getVelocity() {
-        return delegate.getVelocity();
+        return robot.getMotorVelocity(hub, getPortNumber());
     }
 
     @Override
     public synchronized double getVelocity(AngleUnit unit) {
-        return delegate.getVelocity(unit);
+        return unit.fromDegrees(getVelocity()); //todo check this
     }
 
     @Override
@@ -195,7 +209,7 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor{
 
     @Override
     public synchronized int getCurrentPosition() {
-        return delegate.getCurrentPosition();
+        return robot.getEncoderPosition(hub, getPortNumber());
     }
 
     @Override
