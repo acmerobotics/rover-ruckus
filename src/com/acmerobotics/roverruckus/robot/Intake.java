@@ -32,17 +32,14 @@ public class Intake extends Subsystem{
 
         rakeMotor = new CachingDcMotorEx(robot, map.get(DcMotorEx.class,"rakeMotor"), 1);
         rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
-        robot.addMotor(rakeMotor);
 
         intakeMotor = new CachingDcMotorEx(robot, map.get(DcMotorEx.class, "intakeMotor"), 1);
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        robot.addMotor(intakeMotor);
+
 
         rakeServo = new CachingServo(map.get(Servo.class, "rake"));
-        robot.addMotor(rakeServo);
 
         dumpServo = new CachingServo(map.get(Servo.class, "dump"));
-        robot.addMotor(dumpServo);
     }
 
     public void setArmPower(double power) {

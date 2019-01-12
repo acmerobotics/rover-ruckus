@@ -57,19 +57,14 @@ public class Lift extends Subsystem{
 
     public Lift(Robot robot, HardwareMap hardwareMap){
         motor1 = new CachingDcMotorEx(robot, hardwareMap.get(DcMotorEx.class, "liftMotor1"), 1);
-        robot.addMotor(motor1);
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
         motor2 = new CachingDcMotorEx(robot, hardwareMap.get(DcMotorEx.class, "liftMotor2"), 1);
-        robot.addMotor(motor2);
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
         setPosition(0);
 
         ratchet = new CachingServo(hardwareMap.get(Servo.class, "ratchet"));
-        robot.addMotor(ratchet);
         latch = new CachingServo(hardwareMap.get(Servo.class, "latch"));
-        robot.addMotor(latch);
         marker = new CachingServo(hardwareMap.get(Servo.class, "marker"));
-        robot.addMotor(marker);
 
         pidController = new PIDController(pidCoefficients);
 

@@ -8,7 +8,6 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.drive.Kinematics;
 import com.acmerobotics.roadrunner.drive.MecanumKinematics;
 import com.acmerobotics.roadrunner.path.Path;
-import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
 import com.acmerobotics.roverruckus.hardware.LynxOptimizedI2cFactory;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -54,7 +53,7 @@ public class MecanumDrive extends Subsystem{
             new Vector2d(1, 1)
     };
     private static final double radius = 2;
-    private static final double ticksPerInch = (2240 * 4) / (radius * 2 * Math.PI);
+//    private static final double ticksPerInch = (2240 * 4) / (radius * 2 * Math.PI);
 
     public static double axialMaxV = 10;
     public static double axialMaxA = 10;
@@ -105,30 +104,30 @@ public class MecanumDrive extends Subsystem{
         parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
         imu.initialize(parameters);
 
-        try {
-            // axis remap
-            byte AXIS_MAP_CONFIG_BYTE = 0b00011000; //swaps y-z, 0b001000-01 is y-x, 0x6 is x-z
-            byte AXIS_MAP_SIGN_BYTE = 0b001; //x, y, z
-
-            //Need to be in CONFIG mode to write to registers
-            imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.CONFIG.bVal & 0x0F);
-
-            Thread.sleep(100); //Changing modes requires a delay before doing anything else
-
-            //Write to the AXIS_MAP_CONFIG register
-            imu.write8(BNO055IMU.Register.AXIS_MAP_CONFIG, AXIS_MAP_CONFIG_BYTE & 0x0F);
-
-            //Write to the AXIS_MAP_SIGN register
-            imu.write8(BNO055IMU.Register.AXIS_MAP_SIGN, AXIS_MAP_SIGN_BYTE & 0x0F);
-
-            //Need to change back into the IMU mode to use the gyro
-            imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.IMU.bVal & 0x0F);
-
-            Thread.sleep(100); //Changing modes again requires a delay
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
+//        try {
+//            // axis remap
+//            byte AXIS_MAP_CONFIG_BYTE = 0b00011000; //swaps y-z, 0b001000-01 is y-x, 0x6 is x-z
+//            byte AXIS_MAP_SIGN_BYTE = 0b001; //x, y, z
+//
+//            //Need to be in CONFIG mode to write to registers
+//            imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.CONFIG.bVal & 0x0F);
+//
+//            Thread.sleep(100); //Changing modes requires a delay before doing anything else
+//
+//            //Write to the AXIS_MAP_CONFIG register
+//            imu.write8(BNO055IMU.Register.AXIS_MAP_CONFIG, AXIS_MAP_CONFIG_BYTE & 0x0F);
+//
+//            //Write to the AXIS_MAP_SIGN register
+//            imu.write8(BNO055IMU.Register.AXIS_MAP_SIGN, AXIS_MAP_SIGN_BYTE & 0x0F);
+//
+//            //Need to change back into the IMU mode to use the gyro
+//            imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.IMU.bVal & 0x0F);
+//
+//            Thread.sleep(100); //Changing modes again requires a delay
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//        }
+//
     }
 
     private void internalSetVelocity (Pose2d v) {
@@ -137,12 +136,7 @@ public class MecanumDrive extends Subsystem{
               v.getX() - v.getHeading() * wheelPositions[i].getY(),
               v.getY() + v.getHeading() * wheelPositions[i].getX()
             );
-            robot.addTelemetry("omegaaaaa", v.getHeading());
-            robot.addTelemetry("wheelPos" + i + "x", wheelPositions[i].getX());
-            robot.addTelemetry("wheel" + i + "x", rotorVelocity.getX());
-            robot.addTelemetry("wheel" + i + "y", rotorVelocity.getY());
             double surfaceVelocity = rotorVelocity.dot(rotorDirections[i]);
-            robot.addTelemetry("surface" + i, surfaceVelocity);
             double wheelVelocity = surfaceVelocity / radius;
             motors[i].setVelocity(wheelVelocity, AngleUnit.RADIANS);
         }
@@ -219,7 +213,7 @@ public class MecanumDrive extends Subsystem{
 
         List<Double> wheelVelocities = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
-            double pos = motors[i].getCurrentPosition();
+            double pos = robot.getEncoderPosition(motors[i]);
             double distance = ((pos - lastWheelPositions[i])/motors[i].getMotorType().getTicksPerRev()) * (Math.PI * 4);
             wheelVelocities.add(distance);
             lastWheelPositions[i] = pos;

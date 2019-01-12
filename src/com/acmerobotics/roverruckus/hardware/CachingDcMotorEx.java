@@ -1,20 +1,12 @@
 package com.acmerobotics.roverruckus.hardware;
 
-import android.util.Log;
-
 import com.acmerobotics.roverruckus.robot.Robot;
-import com.qualcomm.hardware.lynx.LynxNackException;
-import com.qualcomm.hardware.lynx.commands.core.LynxGetMotorChannelEnableCommand;
-import com.qualcomm.hardware.lynx.commands.core.LynxGetMotorChannelEnableResponse;
-import com.qualcomm.hardware.lynx.commands.core.LynxSetDIODirectionCommand;
-import com.qualcomm.hardware.lynx.commands.core.LynxSetMotorChannelEnableCommand;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
-import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 public class CachingDcMotorEx implements DcMotorEx, CachingMotor{
@@ -101,7 +93,7 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor{
 
     @Override
     public synchronized double getVelocity() {
-        return robot.getMotorVelocity(hub, getPortNumber());
+        return robot.getMotorVelocity(this);
     }
 
     @Override
@@ -209,7 +201,7 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor{
 
     @Override
     public synchronized int getCurrentPosition() {
-        return robot.getEncoderPosition(hub, getPortNumber());
+        return robot.getEncoderPosition(this);
     }
 
     @Override

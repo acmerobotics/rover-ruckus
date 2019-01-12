@@ -18,11 +18,14 @@ import com.qualcomm.hardware.lynx.commands.core.LynxGetMotorChannelCurrentAlertL
 import com.qualcomm.hardware.lynx.commands.core.LynxGetMotorChannelCurrentAlertLevelResponse;
 import com.qualcomm.hardware.lynx.commands.core.LynxI2cReadMultipleBytesCommand;
 import com.qualcomm.hardware.lynx.commands.core.LynxI2cWriteReadMultipleBytesCommand;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
+import com.qualcomm.robotcore.hardware.DcMotorControllerEx;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.GlobalWarningSource;
 import com.qualcomm.robotcore.util.RobotLog;
@@ -32,6 +35,7 @@ import org.firstinspires.ftc.robotcore.internal.opmode.OpModeManagerImpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -41,31 +45,27 @@ import java.util.concurrent.BlockingQueue;
 public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarningSource {
 
     public MecanumDrive drive;
-    public Lift lift;
-    public Intake intake;
-    private final List<Subsystem> subsystems;
+//    public Lift lift;
+//    public Intake intake;
+    private List<Subsystem> subsystems;
 
-    private List<CachingMotor> motors;
-    private List<CachingSensor> sensors;
-    private LynxModuleIntf[] hubs = new LynxModuleIntf[2];
-    private List<LynxGetBulkInputDataResponse> responses;
+    private Map<DcMotorController, LynxModuleIntf> hubs;
+    private Map<LynxModuleIntf, LynxGetBulkInputDataResponse> responses;
     private boolean updated = false;
 
     private OpModeManagerImpl opModeManager;
 
-    private Thread subsystemExecutor, hardwareExecutor, telemetryExecutor;
+    private Thread subsystemExecutor, telemetryExecutor;
 
     private BlockingQueue<TelemetryPacket> packets;
 
     private Map<String, Object> telemetry;
     private List<String> telemetryLines;
 
-    private OpMode master;
+    private LinearOpMode master;
 
-    public Robot(OpMode opMode, HardwareMap map) {
+    public Robot(LinearOpMode opMode, HardwareMap map) {
         this.master = opMode;
-        motors = new ArrayList<>();
-        sensors = new ArrayList<>();
         subsystems = new ArrayList<>();
         packets = new EvictingBlockingQueue<>(new ArrayBlockingQueue<TelemetryPacket>(10));
         telemetry = new HashMap<>();
@@ -77,23 +77,37 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 //        } catch (Exception e) {
 //
 //        }
+//        try {
+//            intake = new Intake(this, map);
+//            subsystems.add(intake);
+//        } catch (Exception e) {
+//
+//        }
+//        try {
+//            lift = new Lift(this, map);
+//            subsystems.add(lift);
+//        } catch (Exception e) {
+//
+//        }
+
+        hubs = new HashMap<>(2);
+        responses = new HashMap<>(2);
         try {
-            intake = new Intake(this, map);
-            subsystems.add(intake);
+            hubs.put(
+                    map.get(DcMotorController.class, "hub1"),
+                    map.get(LynxModuleIntf.class, "hub1"));
         } catch (Exception e) {
-
+            telemetryLines.add("problem with hub1");
         }
+
         try {
-            lift = new Lift(this, map);
-            subsystems.add(lift);
+            hubs.put(
+                    map.get(DcMotorController.class, "hub2"),
+                    map.get(LynxModuleIntf.class, "hub2"));
         } catch (Exception e) {
-
+            telemetryLines.add("problem with hub2");
         }
 
-        hubs[0] = map.get(LynxModuleIntf.class, "hub1");
-        //hubs[1] = map.get(LynxModuleIntf.class, "hub2");
-
-        responses = new ArrayList<>(2);
 
         RobotLog.registerGlobalWarningSource(this);
         Activity activity = (Activity) opMode.hardwareMap.appContext;
@@ -111,7 +125,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 //            }
 //        });
 //        subsystemExecutor.start();
-//
+////
 //        telemetryExecutor = new Thread(new Runnable() {
 //            @Override
 //            public void run() {
@@ -121,41 +135,21 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 //            }
 //        });
 //        telemetryExecutor.start();
-//
-//        hardwareExecutor = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                while (!Thread.currentThread().isInterrupted()) {
-//                    updateHardware();
-//                }
-//            }
-//        });
 
-
-    }
-
-    private void updateHardware() {
-        for (CachingMotor motor: motors) {
-            motor.update();
-        }
-        for (CachingSensor sensor: sensors) {
-            sensor.update();
-        }
-        updated = true;
-        synchronized (responses) {
-            for (int i = 0; i < hubs.length; i++) {
-                try {
-                    LynxGetBulkInputDataCommand command = new LynxGetBulkInputDataCommand(hubs[i]);
-                    responses.set(i, command.sendReceive());
-                } catch (Exception e) {
-                    Log.e("robot", "error in updating bulk input data");
-                    updated = false;
-                }
-            }
-        }
     }
 
     public void updateSubsystems() {
+        for (LynxModuleIntf hub: hubs.values()) {
+            LynxGetBulkInputDataCommand command = new LynxGetBulkInputDataCommand(hub);
+            try {
+                responses.put(hub, command.sendReceive());
+                updated = true;
+            } catch (Exception e) {
+                Log.e("get bulk data error", e.getMessage());
+                updated = false;
+            }
+        }
+
         TelemetryPacket packet = new TelemetryPacket();
         packet.addTimestamp();
         for (Subsystem subsystem: subsystems) {
@@ -170,28 +164,31 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         packets.offer(packet);
     }
 
-    public int getEncoderPosition(int hub, int port) {
+    public int getEncoderPosition(DcMotor motor) {
         if (!updated) return 0;
         synchronized (responses) {
-            return responses.get(hub).getEncoder(port);
+            return responses.get(hubs.get(motor.getController())).getEncoder(motor.getPortNumber()) * (motor.getDirection() == DcMotorSimple.Direction.FORWARD ? 1 : -1);
         }
     }
 
-    public boolean getDigitalPort(int hub, int port) {
+    public boolean getDigitalPort(LynxModuleIntf hub, int port) {
+        if (!updated) return false;
         synchronized (responses) {
             return responses.get(hub).getDigitalInput(port);
         }
     }
 
-    public int getAnalogPort(int hub, int port) {
+    public int getAnalogPort(LynxModuleIntf hub, int port) {
+        if (!updated) return 0;
         synchronized (responses) {
             return responses.get(hub).getAnalogInput(port);
         }
     }
 
-    public int getMotorVelocity(int hub, int port) {
+    public int getMotorVelocity(DcMotor motor) {
+        if (!updated) return 0;
         synchronized (responses) {
-            return responses.get(0).getVelocity(port);
+            return responses.get(hubs.get(motor.getController())).getVelocity(motor.getPortNumber());
         }
     }
 
@@ -233,11 +230,6 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     public void stop() {
 //        subsystemExecutor.interrupt();
 //        telemetryExecutor.interrupt();
-    }
-
-
-    protected void addMotor(CachingMotor motor) {
-        motors.add(motor);
     }
 
     @Override
@@ -294,7 +286,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
             for (Subsystem subsystem : subsystems) {
                 if (subsystem.isBusy()) complete = false;
             }
-            if (complete) return;
+            if (complete || master.isStopRequested()) return;
         }
     }
 
