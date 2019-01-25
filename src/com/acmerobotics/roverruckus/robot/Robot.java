@@ -45,8 +45,9 @@ import java.util.concurrent.BlockingQueue;
 public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarningSource {
 
     public MecanumDrive drive;
-//    public Lift lift;
-//    public Intake intake;
+    public Lift lift;
+    public Intake intake;
+    public Placer placer;
     private List<Subsystem> subsystems;
 
     private Map<DcMotorController, LynxModuleIntf> hubs;
@@ -75,19 +76,26 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
             drive = new MecanumDrive(this, map);
             subsystems.add(drive);
 //        } catch (Exception e) {
+//            telemetryLines.add("problem with drive");
+//        }
+//        try {
+            intake = new Intake(this, map);
+            subsystems.add(intake);
+//        } catch (Exception e) {
+//            telemetryLines.add("problem with intake");
 //
 //        }
 //        try {
-//            intake = new Intake(this, map);
-//            subsystems.add(intake);
+            lift = new Lift(this, map);
+            subsystems.add(lift);
 //        } catch (Exception e) {
-//
+//            telemetryLines.add("problem with lift");
 //        }
 //        try {
-//            lift = new Lift(this, map);
-//            subsystems.add(lift);
+            placer = new Placer(map);
+            subsystems.add(placer);
 //        } catch (Exception e) {
-//
+//            telemetryLines.add("problem with placer");
 //        }
 
         hubs = new HashMap<>(2);
@@ -284,7 +292,10 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
             update();
             boolean complete = true;
             for (Subsystem subsystem : subsystems) {
-                if (subsystem.isBusy()) complete = false;
+                if (subsystem.isBusy()) {
+                    telemetryLines.add(subsystem.getClass().getSimpleName() + " is busy");
+                    complete = false;
+                }
             }
             if (complete || master.isStopRequested()) return;
         }

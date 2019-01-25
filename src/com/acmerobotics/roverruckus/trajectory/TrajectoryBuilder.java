@@ -19,6 +19,7 @@ public class TrajectoryBuilder {
 
         paths.get(-1).splineTo(waypoint.getEnter(), new GoodLinearInterpolator(lastWaypoint.getHeading(), waypoint.getHeading()));
         if (waypoint.getStop()) paths.add(new PathBuilder(waypoint.getExit()));
+        lastWaypoint = waypoint;
         return this;
 
     }

@@ -2,8 +2,13 @@ package com.acmerobotics.roverruckus.robot;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roadrunner.control.PIDFController;
+import com.acmerobotics.roadrunner.profile.MotionProfile;
+import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
+import com.acmerobotics.roadrunner.profile.MotionState;
 import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
 import com.acmerobotics.roverruckus.hardware.CachingServo;
+import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -15,81 +20,111 @@ import com.qualcomm.robotcore.hardware.Servo;
  */
 @Config
 public class Intake extends Subsystem{
-    public static double RAKE_VELOCITY = 1;
-    public static double RAKE_UP = .95;
-    public static double RAKE_DOWN = .5;
-    public static double RAKE_STOW = .05;
-    public static double DUMP_RESET = .95;
-    public static double DUMP_DUMP = 0.05;
+    public static double RAKE_UP = .8;
+    public static double RAKE_DOWN = .35;
+    public static double WINCH_RADIUS = .5;
+    public static double MAX_V = 10;
+    public static double MAX_A = 10;
+    public static double MAX_J = 10;
+    public static double P = 0;
+    public static double I = 0;
+    public static double D = 0;
 
-    private double rakePosition = 0;
+    private DcMotorEx rakeMotor, intakeMotor;
 
-    private CachingDcMotorEx rakeMotor, intakeMotor;
+    private Servo rakeServo;
 
-    private CachingServo rakeServo, dumpServo;
+    private boolean driverControled = true;
+    private double armPower = 0;
+    private MotionProfile armProfile;
+    private PIDController controller;
+    private long startTime;
+    private double offset = 0;
 
     public Intake(Robot robot, HardwareMap map) {
 
-        rakeMotor = new CachingDcMotorEx(robot, map.get(DcMotorEx.class,"rakeMotor"), 1);
+        rakeMotor =  map.get(DcMotorEx.class,"rakeMotor");
         rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
+        rakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        setPosition(0);
 
-        intakeMotor = new CachingDcMotorEx(robot, map.get(DcMotorEx.class, "intakeMotor"), 1);
-        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        intakeMotor = map.get(DcMotorEx.class, "intakeMotor");
+        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
+        rakeServo = map.get(Servo.class, "rake");
+        setPosition(0);
+        controller = new PIDController(P, I, D);
 
-        rakeServo = new CachingServo(map.get(Servo.class, "rake"));
-
-        dumpServo = new CachingServo(map.get(Servo.class, "dump"));
     }
 
     public void setArmPower(double power) {
-        rakeMotor.setPower(power);
+        armPower = power;
+        driverControled = driverControled || Math.abs(power) > .1;
     }
 
     @Override
     public void update(TelemetryPacket packet) {
-//        packet.put("intakeBusy", isBusy());
+        packet.put("rakePosition", getPosition());
+        if (driverControled) {
+            rakeMotor.setPower(armPower);
+        } else {
+            long now = System.currentTimeMillis();
+            double t = (now - startTime) / 1000.0;
+            if (t > armProfile.duration()) {
+                driverControled = true;
+                return;
+            }
+            MotionState targetState = armProfile.get(t);
+            double error = getPosition() - targetState.getV();
+            double correction = controller.update(error);
+            rakeMotor.setVelocity((targetState.getV() + correction) / Math.PI);
+        }
     }
+
+    private void goToPosition(double position) {
+        armProfile = MotionProfileGenerator.generateSimpleMotionProfile(
+                new MotionState(getPosition(), 0, 0, 0),
+                new MotionState(position, 0 ,0 ,0 ),
+                MAX_V, MAX_A, MAX_J);
+        driverControled = false;
+        startTime = System.currentTimeMillis();
+
+    }
+
+    public double getPosition () {
+       return rakeMotor.getCurrentPosition() / rakeMotor.getMotorType().getTicksPerRev() * (2 * Math.PI * WINCH_RADIUS)  - offset;
+    }
+
+    public void setPosition (double position) {
+        offset = position;
+    }
+
 
     public void setIntakePower(double power) {
         intakeMotor.setPower(power);
     }
 
-    private void setRakePosition(double position) {
-        rakePosition = position;
-        rakeServo.setPosition(rakePosition);
-    }
+    private boolean rakeDown = false;
 
     public void rakeUp() {
-        setRakePosition(RAKE_UP);
-    }
-
-    public void rakeStow() {
-        setRakePosition(RAKE_STOW);
+        rakeServo.setPosition(RAKE_UP);
+        rakeDown = false;
     }
 
     public void rakeDown() {
-        setRakePosition(RAKE_DOWN);
+        rakeDown = true;
+        rakeServo.setPosition(RAKE_DOWN);
     }
 
-    long lastTime = 0;
-    public void setRakeVelocity(double v) {
-        if (lastTime == 0) {
-            lastTime = System.currentTimeMillis();
+    public void toggleRake() {
+        if (rakeDown) {
+            rakeUp();
         }
-        long now = System.currentTimeMillis();
-        double dt = (now - lastTime) / 1000.0;
-        lastTime = now;
-        rakePosition += dt * RAKE_VELOCITY * v;
+        else {
+            rakeDown();
+        }
     }
 
-    public void dumpDump() {
-        dumpServo.setPosition(DUMP_DUMP);
-    }
-
-    public void resetDump() {
-        dumpServo.setPosition(DUMP_RESET);
-    }
 
 }
 

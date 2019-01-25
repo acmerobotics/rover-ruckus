@@ -2,6 +2,7 @@ package com.acmerobotics.roverruckus.trajectory;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
@@ -9,10 +10,21 @@ import com.acmerobotics.roadrunner.path.Path;
 import com.acmerobotics.roadrunner.profile.MotionProfile;
 import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
+import com.acmerobotics.roadrunner.util.Angle;
 import com.acmerobotics.roverruckus.robot.MecanumDrive;
 import com.acmerobotics.roverruckus.util.PIDController;
 
+@Config
 public class Trajectory {
+    public static double AXIAL_P = 6;
+    public static double AXIAL_I = 0;
+    public static double AXIAL_D = 0;
+    public static double LATERAL_P = 20;
+    public static double LATERAL_I = 0;
+    public static double LATERAL_D = 0;
+    public static double HEADING_P = 6;
+    public static double HEADING_I = 0;
+    public static double HEADING_D = 0;
 
     private Path path;
     private MotionProfile axialProfile;
@@ -33,12 +45,13 @@ public class Trajectory {
                 MecanumDrive.axialMaxV,
                 MecanumDrive.axialMaxA,
                 MecanumDrive.axialMaxJ
+//                true
         );
         duration = axialProfile.duration();
 
-        this.axialController = new PIDController(-1,0,0);
-        this.lateralController = new PIDController(-1, 0, 0);
-        this.headingController = new PIDController(-1, 0, 0);
+        this.axialController = new PIDController(AXIAL_P, AXIAL_I, AXIAL_D);
+        this.lateralController = new PIDController(LATERAL_P, LATERAL_I, LATERAL_D);
+        this.headingController = new PIDController(HEADING_P, HEADING_I, HEADING_D);
 
     }
 
@@ -47,9 +60,11 @@ public class Trajectory {
     public synchronized Pose2d update(double t, Pose2d pose, TelemetryPacket packet) {
         if (t >= duration) complete = true;
         Pose2d targetPose = path.get(axialProfile.get(t).getX());
-        double theta = path.deriv(axialProfile.get(t).getX()).pos().angle();
+        double theta = Angle.norm(path.deriv(axialProfile.get(t).getX()).pos().angle());
 
         Pose2d targetVelocity = path.deriv(axialProfile.get(t).getX()).times(axialProfile.get(t).getV());
+        packet.fieldOverlay().setStroke("green");
+        packet.fieldOverlay().strokeLine(pose.getX(), pose.getY(), pose.getX() + targetVelocity.getX(), pose.getY() + targetVelocity.getY());
 
         Vector2d trackingError = pose.pos().minus(targetPose.pos()).rotated(-theta);
         packet.put("theta", theta);
@@ -58,8 +73,11 @@ public class Trajectory {
                 axialController.update(trackingError.getX()),
                 lateralController.update(trackingError.getY())
         );
+        trackingCorrection = trackingCorrection.rotated(theta);
+        packet.fieldOverlay().setStroke("pink");
+        packet.fieldOverlay().strokeLine(pose.getX(), pose.getY(), pose.getX() + trackingCorrection.getX(), pose.getY() + trackingCorrection.getY());
 
-        double headingError = pose.getHeading() - targetPose.getHeading();
+        double headingError = Angle.norm(pose.getHeading() - targetPose.getHeading());
         double headingCorrection = headingController.update(headingError);
 
         Pose2d correction = new Pose2d(trackingCorrection, headingCorrection);
@@ -102,7 +120,7 @@ public class Trajectory {
             averageHeadingError += headingError * dt;
         }
 
-        return targetVelocity.plus(correction);
+        return targetVelocity.minus(correction);
     }
 
     public synchronized boolean isComplete() {

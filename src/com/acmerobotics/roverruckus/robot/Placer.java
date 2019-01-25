@@ -32,7 +32,7 @@ public class Placer extends Subsystem {
 
     private Servo armServo, gateServo, intakeServo;
 
-    private DcMotor intakeMotor;
+//    private DcMotor intakeMotor;
 
     private boolean firstIn = false;
     private boolean secondIn = false;
@@ -40,6 +40,7 @@ public class Placer extends Subsystem {
     private boolean secondOut = false;
 
     private long waitTime = 0;
+    private boolean enabled = true;
 
     public enum Mineral {
         GOLD,
@@ -56,11 +57,11 @@ public class Placer extends Subsystem {
         this.frontDistance = map.get(DistanceSensor.class, "frontSensor");
         this.backDistance = map.get(DistanceSensor.class, "backSensor");
 
-        this.armServo = map.servo.get("armServo");
-        this.gateServo = map.servo.get("gateServo");
-        this.intakeServo = map.servo.get("intakeServo");
+        this.armServo = map.servo.get("diverter");
+        this.gateServo = map.servo.get("spacer");
+        this.intakeServo = map.servo.get("gate");
 
-        this.intakeMotor = map.dcMotor.get("intakeMotor");
+//        this.intakeMotor = map.dcMotor.get("intakeMotor");
 
 
         armServo.setPosition(armClose);
@@ -70,6 +71,7 @@ public class Placer extends Subsystem {
 
     @Override
     public void update(TelemetryPacket packet) {
+        if (!enabled) return;
         packet.put("front red", frontColor.red());
         packet.put("front blue", frontColor.blue());
         packet.put("front ratio", (double) frontColor.red() / ((double) frontColor.blue()) + .0001);
@@ -116,7 +118,7 @@ public class Placer extends Subsystem {
                 backMineral = back;
                 armServo.setPosition(armClose);
                 intakeServo.setPosition(intakeClose);
-                intakeMotor.setPower(-1);
+//                intakeMotor.setPower(-1);
             }
         }
         if (secondOut) {
@@ -155,11 +157,15 @@ public class Placer extends Subsystem {
         intakeServo.setPosition(intakeOpen);
         frontMineral = Mineral.NONE;
         backMineral = Mineral.NONE;
-        intakeMotor.setPower(0);
+//        intakeMotor.setPower(0);
 
     }
 
-    public void setIntakePower(double power) {
-        intakeMotor.setPower(power);
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
+
+//    public void setIntakePower(double power) {
+//        intakeMotor.setPower(power);
+//    }
 }

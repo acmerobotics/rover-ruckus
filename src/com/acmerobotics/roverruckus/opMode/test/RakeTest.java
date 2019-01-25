@@ -27,8 +27,8 @@ public class RakeTest extends LinearOpMode {
 
         while (opModeIsActive()) {
             rakeMotor.setPower(gamepad1.left_stick_y);
-            if (gamepad1.left_bumper) placer.setIntakePower(1);
-            if (gamepad1.right_bumper) placer.setIntakePower(0);
+//            if (gamepad1.left_bumper) placer.setIntakePower(1);
+//            if (gamepad1.right_bumper) placer.setIntakePower(0);
             if (gamepad1.dpad_up) rakeServo.setPosition(rakeUp);
             else if (gamepad1.dpad_down) rakeServo.setPosition(rakeDown);
             if (gamepad1.a) placer.releaseFirst();

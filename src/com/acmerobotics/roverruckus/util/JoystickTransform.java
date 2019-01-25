@@ -2,6 +2,7 @@ package com.acmerobotics.roverruckus.util;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roverruckus.robot.Robot;
 import com.qualcomm.robotcore.util.Range;
@@ -14,7 +15,7 @@ public class JoystickTransform {
     public static double exponent = 2;
     public static double rampingTime = 1000;
     private boolean ramping = false;
-    private Vector2d lastCommand = new Vector2d(0, 0);
+    private Pose2d lastCommand = new Pose2d(0, 0, 0);
     private long lastTime = 0;
 
     public MODE mode = MODE.LINEAR;
@@ -44,9 +45,7 @@ public class JoystickTransform {
         return ramping;
     }
 
-    public Vector2d transform(Vector2d original, Robot robot) {
-        robot.addTelemetry("origX", original.getX());
-        robot.addTelemetry("origY", original.getY());
+    public Pose2d transform(Pose2d original) {
         if (lastTime == 0) {
             lastTime = System.currentTimeMillis();
             return lastCommand;
@@ -55,36 +54,31 @@ public class JoystickTransform {
         long dt = now - lastTime;
         lastTime = now;
 
-        double r = original.norm();
-        robot.addTelemetry("r", r);
+        double r = original.pos().norm();
+        double omega = original.getHeading();
+        double sigOmega = Math.signum(omega);
+        omega = Math.abs(omega);
 
         switch (mode) {
             case LINEAR:
                 break;
             case EXPONENTIAL:
                 r = Math.pow(r, exponent);
+                omega = Math.pow(omega, exponent);
                 break;
             case DUAL_ZONE:
                 if (r < dualThreshold)
                     r = dualSlope * r;
                 else
-                    r = -((1-dualSlope*dualThreshold) / (1 - dualThreshold)) * (r - 1) + 1;
-        }
-        Vector2d command = original.times(r / original.norm());
-        if (r==0) command = new Vector2d(0, 0);
-        if (!ramping) return command;
+                    r = ((1 - dualSlope * dualThreshold) / (1 - dualThreshold)) * (r - 1) + 1;
+                if (omega < dualThreshold)
+                    omega = dualSlope * omega;
+                else
+                    omega = ((1 - dualSlope * dualThreshold) / (1 - dualThreshold)) * (omega - 1) + 1;
 
-        Vector2d diff = command.minus(lastCommand);
-        double dist = diff.norm();
-        if (dist >= .01) {
-            double max = dt / rampingTime;
-            double delta = Range.clip(dist,0, max);
-            command = command.plus(diff.times(delta / dist));
         }
-
-        lastCommand = command;
-        robot.addTelemetry("commandX", command.getX());
-        robot.addTelemetry("commandY", command.getY());
+        Pose2d command = new Pose2d(original.pos().times(r / original.pos().norm()), omega * sigOmega);
+        if (r == 0) command = new Pose2d(0, 0, omega * sigOmega);
         return command;
     }
 }

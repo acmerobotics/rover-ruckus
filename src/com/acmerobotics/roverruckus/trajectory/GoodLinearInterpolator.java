@@ -12,6 +12,7 @@ public class GoodLinearInterpolator extends HeadingInterpolator {
         this.startHeading = startHeading;
         turnAngle = endHeading - startHeading;
         if (turnAngle > Math.PI ) turnAngle -= Math.PI;
+        turnAngle = Angle.norm(turnAngle);
     }
 
     @Override

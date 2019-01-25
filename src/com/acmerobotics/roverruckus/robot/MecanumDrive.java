@@ -30,6 +30,11 @@ import java.util.List;
 @Config
 public class MecanumDrive extends Subsystem{
 
+    public static double P = 10;
+    public static double I = 4;
+    public static double D = 0;
+    public static double F = 12.579;
+
     private DcMotorEx[] motors;
     private static final String[] motorNames = {
             "m0",
@@ -104,30 +109,32 @@ public class MecanumDrive extends Subsystem{
         parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
         imu.initialize(parameters);
 
-//        try {
-//            // axis remap
-//            byte AXIS_MAP_CONFIG_BYTE = 0b00011000; //swaps y-z, 0b001000-01 is y-x, 0x6 is x-z
-//            byte AXIS_MAP_SIGN_BYTE = 0b001; //x, y, z
-//
-//            //Need to be in CONFIG mode to write to registers
-//            imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.CONFIG.bVal & 0x0F);
-//
-//            Thread.sleep(100); //Changing modes requires a delay before doing anything else
-//
-//            //Write to the AXIS_MAP_CONFIG register
-//            imu.write8(BNO055IMU.Register.AXIS_MAP_CONFIG, AXIS_MAP_CONFIG_BYTE & 0x0F);
-//
-//            //Write to the AXIS_MAP_SIGN register
-//            imu.write8(BNO055IMU.Register.AXIS_MAP_SIGN, AXIS_MAP_SIGN_BYTE & 0x0F);
-//
-//            //Need to change back into the IMU mode to use the gyro
-//            imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.IMU.bVal & 0x0F);
-//
-//            Thread.sleep(100); //Changing modes again requires a delay
-//        } catch (InterruptedException e) {
-//            Thread.currentThread().interrupt();
-//        }
-//
+        try {
+            // axis remap
+            byte AXIS_MAP_CONFIG_BYTE = 0b00011000; //swaps y-z, 0b00100001 is y-x, 0x6 is x-z
+            byte AXIS_MAP_SIGN_BYTE = 0b001; //x, y, z
+
+            //Need to be in CONFIG mode to write to registers
+            imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.CONFIG.bVal & 0x0F);
+
+            Thread.sleep(100); //Changing modes requires a delay before doing anything else
+
+            //Write to the AXIS_MAP_CONFIG register
+            imu.write8(BNO055IMU.Register.AXIS_MAP_CONFIG, AXIS_MAP_CONFIG_BYTE & 0x0F);
+
+            //Write to the AXIS_MAP_SIGN register
+            imu.write8(BNO055IMU.Register.AXIS_MAP_SIGN, AXIS_MAP_SIGN_BYTE & 0x0F);
+
+            //Need to change back into the IMU mode to use the gyro
+            imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.IMU.bVal & 0x0F);
+
+            Thread.sleep(100); //Changing modes again requires a delay
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        setMotorPIDF(P, I, D, F);
+
     }
 
     private void internalSetVelocity (Pose2d v) {
@@ -157,6 +164,10 @@ public class MecanumDrive extends Subsystem{
 
     }
 
+    public void setRealVelocity(Pose2d target) {
+        this.targetVelocity = target;
+    }
+
     public void followPath (Path path) {
         trajectory = new Trajectory(path);
         currentMode = Mode.FOLLOWING_PATH;
@@ -164,7 +175,8 @@ public class MecanumDrive extends Subsystem{
     }
 
     public boolean isFollowingPath () {
-        return !trajectory.isComplete() && currentMode == Mode.FOLLOWING_PATH;
+        if (currentMode != Mode.FOLLOWING_PATH) return false;
+        return !trajectory.isComplete();
     }
 
     public Pose2d getCurrentEstimatedPose() {
@@ -253,5 +265,14 @@ public class MecanumDrive extends Subsystem{
     public void setCurrentEstimatedPose(Pose2d pose) {
         lastHeading = imu.getAngularOrientation().firstAngle;
         currentEstimatedPose = pose;
+    }
+
+    public double getVelocity() {
+        double v = 0;
+        for (DcMotorEx motor: motors) {
+            v += motor.getVelocity(AngleUnit.RADIANS) * 2;
+        }
+        v /= motors.length;
+        return v;
     }
 }
