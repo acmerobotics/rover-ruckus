@@ -1,5 +1,7 @@
 package com.acmerobotics.roverruckus.robot;
 
+import android.util.Log;
+
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.profile.MotionProfile;
@@ -39,7 +41,7 @@ public class Lift extends Subsystem{
 
     public static double DUMP_DOWN = .88;
     public static double DUMP_MIDDLE = .55;
-    public static double DUMP_UP = .055;
+    public static double DUMP_UP = .1;
     public static double RATCHET_ENGAGE = .5;
     public static double RATCHET_DISENGAGE = .85;
     public static double MARKER_UP = .15;
@@ -51,7 +53,6 @@ public class Lift extends Subsystem{
     public static double K_STATIC = -.3;
     public static double CONTACT_DISTANCE = .2;
     public static long LOWER_WAIT_TIME = 1000;
-
     private DcMotorEx motor1, motor2;
     private Servo marker, ratchet, dump;
     private SharpDistanceSensor distance;
@@ -237,6 +238,7 @@ public class Lift extends Subsystem{
 
     public void dumpUp () {
         dump.setPosition(DUMP_UP);
+        Log.e("the lift", "I guess the dump is supposed to go up lol");
     }
 
     public void dumpMiddle () {

@@ -49,8 +49,6 @@ public class Placer extends Subsystem {
         UNKNOWN
     }
 
-    private Mineral backMineral = Mineral.NONE, frontMineral = Mineral.NONE;
-
     public Placer (HardwareMap map) {
         this.frontColor = map.colorSensor.get("frontSensor");
         this.backColor = map.colorSensor.get("backSensor");
@@ -72,9 +70,9 @@ public class Placer extends Subsystem {
     @Override
     public void update(TelemetryPacket packet) {
         if (!enabled) return;
-        packet.put("front red", frontColor.red());
-        packet.put("front blue", frontColor.blue());
         packet.put("front ratio", (double) frontColor.red() / ((double) frontColor.blue()) + .0001);
+        packet.put("back ratio", (double) backColor.red() / ((double) backColor.blue()) + .0001);
+
         packet.put("front dist", frontDistance.getDistance(DistanceUnit.CM));
         packet.put("back dist", backDistance.getDistance(DistanceUnit.CM));
 
@@ -87,49 +85,36 @@ public class Placer extends Subsystem {
         Mineral back = getMineral(backColor, backDistance);
         Mineral front = getMineral(frontColor, frontDistance);
 
-        if (frontMineral == Mineral.UNKNOWN) frontMineral = front;
-        if (backMineral == Mineral.UNKNOWN) backMineral = back;
-
-        if (frontMineral == Mineral.NONE && front != Mineral.NONE) frontMineral = Mineral.UNKNOWN;
-        if (backMineral == Mineral.NONE && back != Mineral.NONE) backMineral = Mineral.UNKNOWN;
-
         packet.put("frontCurrent", front.toString());
         packet.put("backCurrent", back.toString());
-        packet.put("frontMineral", frontMineral.toString());
-        packet.put("backMineral", backMineral.toString());
 
         if (System.currentTimeMillis() < waitTime) return;
 
-//        if (back != Mineral.NONE && front != Mineral.NONE) {
-//            intakeServo.setPosition(intakeClose);
-//            intakeMotor.setPower(-1);
-//        }
+        if (back != Mineral.NONE && !firstIn) {
+           gateServo.setPosition(gateClose);
+           waitTime = System.currentTimeMillis() + delay;
+           firstIn = true;
+        } else if (!secondIn && back != Mineral.NONE && front != Mineral.NONE) {
+            armServo.setPosition(armClose);
+            intakeServo.setPosition(intakeClose);
+            secondIn = true;
+            enabled = false;
+        }
 
-        if (!firstIn) {
-            if (back != Mineral.NONE) {
-                waitTime = System.currentTimeMillis() + delay;
-                firstIn = true;
-                gateServo.setPosition(gateClose);
-            }
-        } else if (!secondIn) {
-            if (front != Mineral.NONE) {
-                secondIn = true;
-                frontMineral = front;
-                backMineral = back;
-                armServo.setPosition(armClose);
-                intakeServo.setPosition(intakeClose);
-//                intakeMotor.setPower(-1);
-            }
-        }
         if (secondOut) {
-            armServo.setPosition(backMineral == Mineral.GOLD ? armOpen : armDivert);
+            armServo.setPosition(back == Mineral.SILVER ? armDivert : armOpen);
             gateServo.setPosition(gateOpen);
-            secondOut = false;
-        } else if (firstOut) {
-            armServo.setPosition(frontMineral == Mineral.GOLD ? armOpen : armDivert);
-            if (frontMineral == backMineral) gateServo.setPosition(gateOpen);
-            firstOut = false;
+            enabled = false;
         }
+        else if (firstOut) {
+            armServo.setPosition(front == Mineral.SILVER ? armDivert : armOpen);
+            if (front == back) gateServo.setPosition(gateOpen);
+            enabled = false;
+        }
+
+
+
+
     }
 
     private Mineral getMineral (ColorSensor sensor, DistanceSensor distanceSensor) {
@@ -141,10 +126,12 @@ public class Placer extends Subsystem {
 
     public void releaseFirst () {
         firstOut = true;
+        enabled = true;
     }
 
     public void releaseSecond() {
         secondOut = true;
+        enabled = true;
     }
 
     public void reset() {
@@ -155,8 +142,7 @@ public class Placer extends Subsystem {
         gateServo.setPosition(gateOpen);
         armServo.setPosition(armOpen);
         intakeServo.setPosition(intakeOpen);
-        frontMineral = Mineral.NONE;
-        backMineral = Mineral.NONE;
+        enabled = false;
 //        intakeMotor.setPower(0);
 
     }

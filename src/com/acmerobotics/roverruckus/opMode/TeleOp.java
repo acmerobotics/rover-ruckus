@@ -38,9 +38,15 @@ public class TeleOp extends LinearOpMode {
            if (Math.abs(gamepad2.left_stick_y) > .1 || !robot.lift.isBusy()) robot.lift.setVelocity(-gamepad2.left_stick_y);
            if (gamepad2.left_bumper) robot.lift.engageRatchet();
            if (gamepad2.right_bumper) robot.lift.disengageRatchet();
-           if (gamepad2.dpad_up) robot.lift.liftTop();
+           if (gamepad2.dpad_up) {
+               robot.placer.setEnabled(false);
+               robot.lift.liftTop();
+           }
            if (gamepad2.dpad_left) robot.lift.goToPosition(Lift.LIFT_LATCH);
-           if (gamepad2.dpad_down) robot.lift.liftBottom();
+           if (gamepad2.dpad_down) {
+               robot.lift.liftBottom();
+               robot.placer.reset();
+           }
            if (gamepad2.dpad_right) robot.lift.dumpUp();
            //rake
            double rakeVelocity = gamepad2.right_stick_y;
@@ -49,6 +55,7 @@ public class TeleOp extends LinearOpMode {
 //
 //           //intake
            robot.intake.setIntakePower(gamepad2.left_trigger - gamepad2.right_trigger);
+           if (gamepad2.left_trigger > .1) robot.placer.setEnabled(true);
            robot.intake.setArmPower(gamepad1.left_trigger - gamepad1.right_trigger);
            if (stickyGamepad1.right_bumper) robot.intake.toggleRake();
 
