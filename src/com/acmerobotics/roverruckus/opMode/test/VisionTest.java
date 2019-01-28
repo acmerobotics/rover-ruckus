@@ -23,15 +23,7 @@ public class VisionTest extends LinearOpMode {
         waitForStart();
 
         while (!isStopRequested()) {
-            Mat frame = CameraFrameGrabber.getInstance().getFrame();
-            frame = SamplingVision.processFrame(frame);
-            TelemetryPacket packet = new TelemetryPacket();
-            packet.put("frame", frame.channels());
-            packet.put("0,0", frame.get(0,0));
-            packet.put("yup", frame);
-            FtcDashboard.getInstance().sendTelemetryPacket(packet);
-            Imgproc.circle(frame, new Point(10, 10), 10, new Scalar(1, 0, 0), 5);
-            CameraFrameGrabber.getInstance().setOverlay(frame);
+            CameraFrameGrabber.getInstance().setOverlay(SamplingVision.processFrame(CameraFrameGrabber.getInstance().getFrame()));
         }
     }
 }
