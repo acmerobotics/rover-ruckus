@@ -17,7 +17,7 @@ public class Placer extends Subsystem {
     public static double armOpen = .14;
 
     public static double gateOpen = .4;
-    public static double gateClose = 0;
+    public static double gateClose = .1;
 
     public static double intakeOpen = 0;
     public static double intakeClose = 0;
@@ -69,6 +69,7 @@ public class Placer extends Subsystem {
 
     @Override
     public void update(TelemetryPacket packet) {
+        packet.put("enabled", enabled);
         if (!enabled) return;
         packet.put("front ratio", (double) frontColor.red() / ((double) frontColor.blue()) + .0001);
         packet.put("back ratio", (double) backColor.red() / ((double) backColor.blue()) + .0001);
@@ -95,7 +96,6 @@ public class Placer extends Subsystem {
            waitTime = System.currentTimeMillis() + delay;
            firstIn = true;
         } else if (!secondIn && back != Mineral.NONE && front != Mineral.NONE) {
-            armServo.setPosition(armClose);
             intakeServo.setPosition(intakeClose);
             secondIn = true;
             enabled = false;
@@ -149,6 +149,10 @@ public class Placer extends Subsystem {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public void closeArm() {
+        armServo.setPosition(armClose);
     }
 
 //    public void setIntakePower(double power) {

@@ -13,7 +13,6 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import java.util.Arrays;
@@ -34,14 +33,14 @@ public class Lift extends Subsystem{
     public static double V = 10;
     public static double A = 10;
     public static double J = 10;
-    public static double LOWER_P = -.28;
+    public static double LOWER_P = -.4;
     public static double RADIUS = .5; //find actual value in inches when lift is in CAD
     public static double LOWER_DISTANCE = .13;
     public static double LOWER_THRESHOLD = .01;
 
-    public static double DUMP_DOWN = .88;
-    public static double DUMP_MIDDLE = .55;
-    public static double DUMP_UP = .1;
+    public static double DUMP_DOWN = .92;
+    public static double DUMP_MIDDLE = .65;
+    public static double DUMP_UP = .15;
     public static double RATCHET_ENGAGE = .5;
     public static double RATCHET_DISENGAGE = .85;
     public static double MARKER_UP = .15;
@@ -52,7 +51,7 @@ public class Lift extends Subsystem{
 
     public static double K_STATIC = -.3;
     public static double CONTACT_DISTANCE = .2;
-    public static long LOWER_WAIT_TIME = 1000;
+    public static int LOWER_WAIT_TIME = 1000;
     private DcMotorEx motor1, motor2;
     private Servo marker, ratchet, dump;
     private SharpDistanceSensor distance;

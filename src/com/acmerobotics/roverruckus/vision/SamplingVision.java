@@ -26,96 +26,64 @@ public class SamplingVision {
     public static int MAX_VAL = 255;
     public static int K_SIZE = 20;
     public static int BLUR_SIZE = 5;
-    public static int display = 0;
+    public static int DISPLAY = 0;
+    private static int i = 0;
 
-    private double x = 0;
-    private double y = 0;
+    private static double x = 0;
+    private static double y = 0;
 
-    synchronized double getX () {
+    public synchronized static double getX () {
         return x;
-
     }
 
-    private abstract class Step {
-        protected abstract Mat run (Mat in, Mat frame);
+    public synchronized static double getY () {
+        return y;
     }
 
+    public synchronized static Mat processFrame (Mat in) {
+        i = 0;
+        Mat ret = null;
+        Mat frame = Mat.zeros(in.size(), in.type());
+        ret = in;
+        Imgproc.blur(in, frame, new Size(BLUR_SIZE,BLUR_SIZE));
+        if (display()) ret = frame;
+        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_RGB2HSV);
+        Core.inRange(frame, new Scalar(MIN_HUE, MIN_SAT, MIN_VAL), new Scalar(MAX_HUE, MAX_SAT, MAX_VAL), frame);
+        if (display()) ret = frame;
+        Imgproc.morphologyEx(frame, frame, Imgproc.MORPH_OPEN, Mat.ones(K_SIZE, K_SIZE, frame.type()));
+        if (display()) ret = frame;
+        Imgproc.morphologyEx(frame, frame, Imgproc.MORPH_CLOSE, Mat.ones(K_SIZE, K_SIZE, frame.type()));
+        if (display()) ret = frame;
 
-    private Step[] steps = {
-            new Step() {
-                @Override
-                protected Mat run(Mat in, Mat frame) {
-                    Imgproc.blur(frame, frame, new Size(BLUR_SIZE,BLUR_SIZE));
-                    return frame;
-                }
-            },
-            new Step() {
-                @Override
-                protected Mat run(Mat in, Mat frame) {
-                    Imgproc.cvtColor(in, frame, Imgproc.COLOR_RGB2HSV);
-                    return in;
-                }
-            },
-            new Step() {
-                @Override
-                protected Mat run(Mat in, Mat frame) {
-                    Core.inRange(frame, new Scalar(MIN_HUE, MIN_SAT, MIN_VAL), new Scalar(MAX_HUE, MAX_SAT, MAX_VAL), frame);
-                    return frame;
-                }
-            },
-            new Step() {
-                @Override
-                protected Mat run(Mat in, Mat frame) {
-                    Imgproc.morphologyEx(frame, frame, Imgproc.MORPH_OPEN, Mat.ones(K_SIZE, K_SIZE, frame.type()));
-                    return frame;
-                }
-            },
-            new Step() {
-                @Override
-                protected Mat run(Mat in, Mat frame) {
-                    Imgproc.morphologyEx(frame, frame, Imgproc.MORPH_CLOSE, Mat.ones(K_SIZE, K_SIZE, frame.type()));
-                    return frame;
-                }
-            },
-            new Step() {
-                @Override
-                protected Mat run(Mat in, Mat frame) {
-                    List<MatOfPoint> contours = new ArrayList<>();
-                    Mat hierarchy = new Mat();
-                    Imgproc.findContours(frame, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
-                    Imgproc.drawContours(in, contours, -1, new Scalar(0, 255, 0), 3);
+        List<MatOfPoint> contours = new ArrayList<>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(frame, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
+        Imgproc.drawContours(in, contours, -1, new Scalar(0, 255, 0), 3);
 
-                    if (contours.size() >= 1) {
-                        RotatedRect best = null;
-                        double max = 0;
-                        for (MatOfPoint contour: contours) {
-                            MatOfPoint2f x = new MatOfPoint2f();
-                            x.fromArray(contour.toArray());
-                            RotatedRect rect = Imgproc.minAreaRect(x);
-                            double size = Math.hypot(rect.size.height, rect.size.width);
-                            if (size > max) {
-                                max = size;
-                                best = rect;
-                            }
-                        }
-                        Imgproc.rectangle(in, new Point(best.boundingRect().x, best.boundingRect().y), new Point(best.boundingRect().x + best.boundingRect().width, best.boundingRect().y + best.boundingRect().height), new Scalar(255, 0, 0), 5);
-                    }
-
-                    return in;
+        if (contours.size() >= 1) {
+            RotatedRect best = null;
+            double max = 0;
+            for (MatOfPoint contour: contours) {
+                MatOfPoint2f x = new MatOfPoint2f();
+                x.fromArray(contour.toArray());
+                RotatedRect rect = Imgproc.minAreaRect(x);
+                double size = Math.hypot(rect.size.height, rect.size.width);
+                if (size > max) {
+                    max = size;
+                    best = rect;
                 }
             }
-    };
-
-    public Mat processFrame (Mat in) {
-        Mat frame = Mat.zeros(in.size(), in.type());
-        Mat ret = null;
-
-        for (int i = 0; i <= display; i++) {
-            Mat tmp = steps[i].run(in, frame);
-            if (i == display) ret = tmp;
+            x = best.center.x;
+            y = best.center.y;
+            Imgproc.rectangle(in, new Point(best.boundingRect().x, best.boundingRect().y), new Point(best.boundingRect().x + best.boundingRect().width, best.boundingRect().y + best.boundingRect().height), new Scalar(255, 0, 0), 5);
         }
-
+        if (display()) ret = in;
         return ret;
+    }
+
+    private static boolean display () {
+        i ++;
+        return i == DISPLAY;
     }
 
 }

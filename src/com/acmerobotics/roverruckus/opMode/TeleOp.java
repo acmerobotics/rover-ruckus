@@ -29,7 +29,7 @@ public class TeleOp extends LinearOpMode {
        while (!isStopRequested()) {
 
            //drive
-           Pose2d v = transform.transform(new Pose2d(-gamepad1.left_stick_x/2, -gamepad1.left_stick_y/2, -gamepad1.right_stick_x/2));
+           Pose2d v = transform.transform(new Pose2d(-gamepad1.left_stick_x, -gamepad1.left_stick_y, -gamepad1.right_stick_x));
            robot.drive.setVelocity(v);
            robot.addTelemetry("x", v.getX());
            robot.addTelemetry("y", v.getY());

@@ -29,6 +29,7 @@ public class Intake extends Subsystem{
     public static double P = 0;
     public static double I = 0;
     public static double D = 0;
+    public static double RAKE_RETRACT_DISTANCE = 2;
 
     private DcMotorEx rakeMotor, intakeMotor;
 
@@ -70,14 +71,16 @@ public class Intake extends Subsystem{
         } else {
             long now = System.currentTimeMillis();
             double t = (now - startTime) / 1000.0;
-            if (t > armProfile.duration()) {
-                driverControled = true;
-                return;
+            double targetV = 0;
+            double targetX = armProfile.end().getX();
+            if (t <= armProfile.duration()) {
+                MotionState targetState = armProfile.get(t);
+                targetV = targetState.getV();
+                targetX = targetState.getX();
             }
-            MotionState targetState = armProfile.get(t);
-            double error = getPosition() - targetState.getV();
+            double error = getPosition() - targetX;
             double correction = controller.update(error);
-            rakeMotor.setVelocity((targetState.getV() + correction) / Math.PI);
+            rakeMotor.setVelocity((targetV + correction) / WINCH_RADIUS);
         }
     }
 
@@ -123,6 +126,11 @@ public class Intake extends Subsystem{
         else {
             rakeDown();
         }
+    }
+
+    public void retractRake () {
+        rakeUp();
+        goToPosition(RAKE_RETRACT_DISTANCE);
     }
 
 

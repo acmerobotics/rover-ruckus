@@ -10,6 +10,7 @@ import com.acmerobotics.roadrunner.drive.MecanumKinematics;
 import com.acmerobotics.roadrunner.path.Path;
 import com.acmerobotics.roverruckus.hardware.LynxOptimizedI2cFactory;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
+import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.hardware.lynx.LynxModule;
@@ -34,6 +35,8 @@ public class MecanumDrive extends Subsystem{
     public static double I = 4;
     public static double D = 0;
     public static double F = 12.579;
+    public static double TELEOP_V = 45;
+    public static double TELEOP_OMEGA = 5;
 
     private DcMotorEx[] motors;
     private static final String[] motorNames = {
@@ -68,6 +71,14 @@ public class MecanumDrive extends Subsystem{
     public static double headingMaxA = 5;
     public static double headingMaxJ = 5;
 
+    public static double HOLD_POSITION_P = 1;
+    public static double HOLD_POSITION_I = 1;
+    public static double HOLD_POSITION_HEADING_P = 1;
+    public static double HOLD_POSITION_HEADING_I = 1;
+
+    private PIDController holdPositionController;
+    private PIDController holdPositionHeadingController;
+
     private Pose2d targetVelocity = new Pose2d(0,0,0);
     private Pose2d currentEstimatedPose = new Pose2d(0, 0, 0);
     private boolean estimatingPose = true;
@@ -83,7 +94,8 @@ public class MecanumDrive extends Subsystem{
 
     private enum Mode {
         OPEN_LOOP,
-        FOLLOWING_PATH
+        FOLLOWING_PATH,
+        HOLD_POSITION
     }
 
     private Mode currentMode = Mode.OPEN_LOOP;
@@ -155,13 +167,15 @@ public class MecanumDrive extends Subsystem{
      * @param target Desired velocity of the robot, on [-1, 1], will be scaled to max V
      */
     public void setVelocity (Pose2d target) {
+        if (currentMode == Mode.HOLD_POSITION && target.getY() == 0 && target.getX() == 0 && target.getHeading() == 0) return;
         double v = target.pos().norm();
-        v = Range.clip(v, -1, 1) * 45;
+        v = Range.clip(v, -1, 1) * TELEOP_V;
         double theta = Math.atan2(target.getX(), target.getY());
-        double omega = target.getHeading() * headingMaxV;
+        double omega = target.getHeading() * TELEOP_OMEGA;
 
         targetVelocity = new Pose2d(v * Math.cos(theta), v * Math.sin(theta), omega);
 
+        currentMode = Mode.OPEN_LOOP;
     }
 
     public void setRealVelocity(Pose2d target) {
@@ -196,7 +210,6 @@ public class MecanumDrive extends Subsystem{
             drawPose(packet.fieldOverlay(), currentEstimatedPose, "red");
         }
 
-
         switch (currentMode) {
             case OPEN_LOOP:
                 packet.put("vX", targetVelocity.getX());
@@ -209,6 +222,14 @@ public class MecanumDrive extends Subsystem{
                 internalSetVelocity(Kinematics.fieldToRobotPoseVelocity(currentEstimatedPose, trajectory.update((System.currentTimeMillis() - startTime) / 1000.0, currentEstimatedPose, packet)));
                 if (trajectory.isComplete()) currentMode = Mode.OPEN_LOOP;
                 break;
+
+            case HOLD_POSITION:
+                Vector2d trackingError = currentEstimatedPose.pos();
+                double headingError = currentEstimatedPose.getHeading();
+                double correctionMag = holdPositionController.update(trackingError.norm());
+                Vector2d correction = trackingError.div(trackingError.norm()).times(correctionMag);
+                double headingCorrection = holdPositionHeadingController.update(headingError);
+                internalSetVelocity(new Pose2d(correction, headingCorrection));
         }
 
     }
@@ -274,5 +295,13 @@ public class MecanumDrive extends Subsystem{
         }
         v /= motors.length;
         return v;
+    }
+
+    public void holdPosition () {
+        holdPositionController = new PIDController(HOLD_POSITION_P, HOLD_POSITION_I, 0);
+        holdPositionHeadingController = new PIDController(HOLD_POSITION_HEADING_P, HOLD_POSITION_HEADING_I, 0);
+        setCurrentEstimatedPose(new Pose2d(0,0,0));
+        currentMode = Mode.HOLD_POSITION;
+        estimatingPose = true;
     }
 }
