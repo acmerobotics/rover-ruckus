@@ -13,14 +13,14 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 @Config
 public class Placer extends Subsystem {
     public static double armClose = .58;
-    public static double armDivert = .3;
+    public static double armDivert = .35;
     public static double armOpen = .14;
 
     public static double gateOpen = .4;
     public static double gateClose = .1;
 
-    public static double intakeOpen = 0;
-    public static double intakeClose = 0;
+    public static double intakeOpen = .4;
+    public static double intakeClose = .9;
 
     public static double colorThreshold = 1.5;
     public static double distanceThreshold = 6;
@@ -41,6 +41,8 @@ public class Placer extends Subsystem {
 
     private long waitTime = 0;
     private boolean enabled = true;
+
+    private boolean intaking = true;
 
     public enum Mineral {
         GOLD,
@@ -91,28 +93,29 @@ public class Placer extends Subsystem {
 
         if (System.currentTimeMillis() < waitTime) return;
 
-        if (back != Mineral.NONE && !firstIn) {
-           gateServo.setPosition(gateClose);
-           waitTime = System.currentTimeMillis() + delay;
-           firstIn = true;
-        } else if (!secondIn && back != Mineral.NONE && front != Mineral.NONE) {
-            intakeServo.setPosition(intakeClose);
-            secondIn = true;
-            enabled = false;
-        }
+//        if (back != Mineral.NONE && !firstIn) {
+//           gateServo.setPosition(gateClose);
+//           waitTime = System.currentTimeMillis() + delay;
+//           firstIn = true;
+//        } else if (!secondIn && back != Mineral.NONE && front != Mineral.NONE) {
+//            intakeServo.setPosition(intakeClose);
+//            secondIn = true;
+//            enabled = false;
+//        }
+//
+//        if (secondOut) {
+//            armServo.setPosition(back == Mineral.SILVER ? armDivert : armOpen);
+//            gateServo.setPosition(gateOpen);
+//            enabled = false;
+//        }
+//        else if (firstOut) {
+//            armServo.setPosition(front == Mineral.SILVER ? armDivert : armOpen);
+//            if (front == back) gateServo.setPosition(gateOpen);
+//            enabled = false;
+//        }
 
-        if (secondOut) {
-            armServo.setPosition(back == Mineral.SILVER ? armDivert : armOpen);
-            gateServo.setPosition(gateOpen);
-            enabled = false;
-        }
-        else if (firstOut) {
-            armServo.setPosition(front == Mineral.SILVER ? armDivert : armOpen);
-            if (front == back) gateServo.setPosition(gateOpen);
-            enabled = false;
-        }
 
-
+        if ((back != Mineral.NONE || front != Mineral.NONE) && intaking) gateServo.setPosition(gateClose);
 
 
     }
@@ -141,7 +144,7 @@ public class Placer extends Subsystem {
         secondOut = false;
         gateServo.setPosition(gateOpen);
         armServo.setPosition(armOpen);
-        intakeServo.setPosition(intakeOpen);
+//        intakeServo.setPosition(intakeOpen);
         enabled = false;
 //        intakeMotor.setPower(0);
 
@@ -153,6 +156,31 @@ public class Placer extends Subsystem {
 
     public void closeArm() {
         armServo.setPosition(armClose);
+    }
+
+    public void releaseGold() {
+        armServo.setPosition(armOpen);
+        if (firstOut) gateServo.setPosition(gateOpen);
+        else gateServo.setPosition(gateClose);
+        firstOut = true;
+        intaking = false;
+
+    }
+
+    public void releaseSilver() {
+        armServo.setPosition(armDivert);
+        if (firstOut) gateServo.setPosition(gateOpen);
+        else gateServo.setPosition(gateClose);
+        firstOut = true;
+        intaking = false;
+    }
+
+    public void closeIntake() {
+        intakeServo.setPosition(intakeClose);
+    }
+
+    public void openIntake() {
+        intakeServo.setPosition(intakeOpen);
     }
 
 //    public void setIntakePower(double power) {

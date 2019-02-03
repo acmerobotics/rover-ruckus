@@ -47,7 +47,7 @@ public class Intake extends Subsystem{
         rakeMotor =  map.get(DcMotorEx.class,"rakeMotor");
         rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
         rakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        setPosition(0);
+//        setPosition(0);
 
         intakeMotor = map.get(DcMotorEx.class, "intakeMotor");
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -90,16 +90,17 @@ public class Intake extends Subsystem{
                 new MotionState(position, 0 ,0 ,0 ),
                 MAX_V, MAX_A, MAX_J);
         driverControled = false;
+
         startTime = System.currentTimeMillis();
 
     }
 
     public double getPosition () {
-       return rakeMotor.getCurrentPosition() / rakeMotor.getMotorType().getTicksPerRev() * (2 * Math.PI * WINCH_RADIUS)  - offset;
+       return rakeMotor.getCurrentPosition() / rakeMotor.getMotorType().getTicksPerRev() * (2 * Math.PI * WINCH_RADIUS)  + offset;
     }
 
     public void setPosition (double position) {
-        offset = position;
+        offset = getPosition() - offset + position;
     }
 
 

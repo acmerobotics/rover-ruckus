@@ -36,7 +36,7 @@ public class MecanumDrive extends Subsystem{
     public static double D = 0;
     public static double F = 12.579;
     public static double TELEOP_V = 45;
-    public static double TELEOP_OMEGA = 5;
+    public static double TELEOP_OMEGA = 2;
 
     private DcMotorEx[] motors;
     private static final String[] motorNames = {

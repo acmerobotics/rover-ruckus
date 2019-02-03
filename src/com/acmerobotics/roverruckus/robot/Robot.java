@@ -47,7 +47,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     public MecanumDrive drive;
     public Lift lift;
     public Intake intake;
-    public Placer placer;
+//    public Placer placer;
     private List<Subsystem> subsystems;
 
     private Map<DcMotorController, LynxModuleIntf> hubs;
@@ -92,8 +92,8 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 //            telemetryLines.add("problem with lift");
 //        }
 //        try {
-            placer = new Placer(map);
-            subsystems.add(placer);
+//            placer = new Placer(map);
+//            subsystems.add(placer);
 //        } catch (Exception e) {
 //            telemetryLines.add("problem with placer");
 //        }
@@ -293,7 +293,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
             boolean complete = true;
             for (Subsystem subsystem : subsystems) {
                 if (subsystem.isBusy()) {
-                    telemetryLines.add(subsystem.getClass().getSimpleName() + " is busy");
+//                    telemetryLines.add(subsystem.getClass().getSimpleName() + " is busy");
                     complete = false;
                 }
             }

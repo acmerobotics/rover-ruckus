@@ -38,7 +38,7 @@ public class LiftTest extends LinearOpMode {
 
         robot.lift.disengageRatchet();
         robot.lift.dumpMiddle();
-        robot.placer.setEnabled(false);
+        robot.lift.placer.setEnabled(false);
         robot.lift.setPosition(0);
 
         waitForStart();

@@ -30,9 +30,9 @@ public class Lift extends Subsystem{
     public static double P = .5;
     public static double I = 0;
     public static double D = 0;
-    public static double V = 10;
-    public static double A = 10;
-    public static double J = 10;
+    public static double V = 12;
+    public static double A = 30;
+    public static double J = 30;
     public static double LOWER_P = -.4;
     public static double RADIUS = .5; //find actual value in inches when lift is in CAD
     public static double LOWER_DISTANCE = .13;
@@ -45,9 +45,9 @@ public class Lift extends Subsystem{
     public static double RATCHET_DISENGAGE = .85;
     public static double MARKER_UP = .15;
     public static double MARKER_DOWN = .9;
-    public static double LIFT_LATCH = 14.5;
-    public static double LIFT_SCORE = 23.5;
-    public static double LIFT_MAX = 23.5;
+    public static double LIFT_LATCH = 15;
+    public static double LIFT_SCORE = 22.5;
+    public static double LIFT_MAX = 22.5;
 
     public static double K_STATIC = -.3;
     public static double CONTACT_DISTANCE = .2;
@@ -70,6 +70,8 @@ public class Lift extends Subsystem{
 
     private double dumpPositionOnCompletion = DUMP_MIDDLE;
     private boolean moveDumpOnCompletion = false;
+    private boolean closePlacerOnCompletion = false;
+    private boolean openGateOnCompletion = false;
 
     private enum LiftMode{
         RUN_TO_POSITION,
@@ -79,6 +81,9 @@ public class Lift extends Subsystem{
     }
 
     private LiftMode liftMode = LiftMode.DRIVER_CONTROLLED;
+
+    public Placer placer;
+    private boolean gateArmClosed = false;
 
     public Lift(Robot robot, HardwareMap hardwareMap){
         motor1 = hardwareMap.get(DcMotorEx.class, "liftMotor1");
@@ -95,6 +100,8 @@ public class Lift extends Subsystem{
         distance = new SharpDistanceSensor(hardwareMap.analogInput.get("dist"));
 
         pidController = new PIDController(P, I, D);
+
+        placer = new Placer(hardwareMap);
 
         markerUp();
         engageRatchet();
@@ -120,6 +127,10 @@ public class Lift extends Subsystem{
         switch (liftMode) {
             case RUN_TO_POSITION:
                 double t = (System.currentTimeMillis() - startTime) / 1000.0;
+                if (!gateArmClosed && getPosition() > LIFT_LATCH) {
+                    placer.closeArm();
+                    gateArmClosed = true;
+                }
                 if (t > profile.duration()) {
                     packet.put("complete", true);
                     liftMode = LiftMode.HOLD_POSITION;
@@ -168,13 +179,18 @@ public class Lift extends Subsystem{
 
     private void completionDump () {
         if (moveDumpOnCompletion) dump.setPosition(dumpPositionOnCompletion);
+        if (closePlacerOnCompletion) placer.closeArm();
+        if (openGateOnCompletion) placer.openIntake();
+        openGateOnCompletion = false;
         moveDumpOnCompletion = false;
+        closePlacerOnCompletion = false;
     }
 
     public void lower() {
         pidController = new PIDController(LOWER_P, 0, 0);
         disengageRatchet();
         dumpMiddle();
+        placer.reset();
         liftMode = LiftMode.LOWERING;
         lowerStartTime = System.currentTimeMillis();
     }
@@ -198,8 +214,11 @@ public class Lift extends Subsystem{
         if (Math.abs(v) < .1 && liftMode != LiftMode.DRIVER_CONTROLLED) return;
         if (getPosition() >= LIFT_MAX && v > 0) return;
         if (getPosition() <= 0 && v < 0) return;
+        if (!ratchetEngaged) v /= 2;
         liftMode = LiftMode.DRIVER_CONTROLLED;
         moveDumpOnCompletion = false;
+        closePlacerOnCompletion = false;
+        openGateOnCompletion = false;
         if (v <= 0 || !ratchetEngaged) internalSetVelocity(v);
     }
 
@@ -228,15 +247,19 @@ public class Lift extends Subsystem{
     public void liftTop () {
         goToPosition(LIFT_SCORE);
         setDumpOnCompletion(DUMP_MIDDLE);
+        closePlacerOnCompletion = true;
+        gateArmClosed = false;
     }
 
     public void liftBottom () {
         goToPosition(0);
         setDumpOnCompletion(DUMP_DOWN);
+        openGateOnCompletion = true;
     }
 
     public void dumpUp () {
-        dump.setPosition(DUMP_UP);
+        if (liftMode == LiftMode.RUN_TO_POSITION) setDumpOnCompletion(DUMP_UP);
+        else dump.setPosition(DUMP_UP);
         Log.e("the lift", "I guess the dump is supposed to go up lol");
     }
 
