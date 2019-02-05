@@ -1,4 +1,4 @@
 package com.acmerobotics.roverruckus.trajectory;
 
-public class Trajectory {
+public class PointTurnTrajectory {
 }
