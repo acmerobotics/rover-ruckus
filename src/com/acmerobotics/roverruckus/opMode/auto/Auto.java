@@ -3,14 +3,9 @@ package com.acmerobotics.roverruckus.opMode.auto;
 import android.util.Log;
 
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.path.Path;
-import com.acmerobotics.roadrunner.path.PathBuilder;
-import com.acmerobotics.roverruckus.robot.Lift;
 import com.acmerobotics.roverruckus.robot.Robot;
+import com.acmerobotics.roverruckus.trajectory.SplineTrajectory;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
-import com.acmerobotics.roverruckus.trajectory.TrajectoryBuilder;
-import com.acmerobotics.roverruckus.trajectory.Waypoint;
 import com.acmerobotics.roverruckus.vision.GoldLocation;
 import com.acmerobotics.roverruckus.vision.SamplingVision;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -53,7 +48,7 @@ public class Auto extends LinearOpMode {
         }
         robot.drive.setCurrentEstimatedPose(autoPaths.start().pos());
 
-//        Trajectory release = new TrajectoryBuilder(new Waypoint(robot.drive.getCurrentEstimatedPose(), -Math.PI / 2))
+//        SplineTrajectory release = new TrajectoryBuilder(new Waypoint(robot.drive.getCurrentEstimatedPose(), -Math.PI / 2))
 //                .to(new Waypoint(new Pose2d(RELEASE_X, RELEASE_Y, -Math.PI/12), -Math.PI/4))
 //                .build().get(0);
 //        Log.i(TAG, "path duration: " + release.duration());

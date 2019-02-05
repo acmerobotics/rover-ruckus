@@ -2,6 +2,7 @@ package com.acmerobotics.roverruckus.opMode.auto;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roverruckus.trajectory.SplineTrajectory;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roverruckus.trajectory.Waypoint;

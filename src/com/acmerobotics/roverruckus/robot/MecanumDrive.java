@@ -7,8 +7,8 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.drive.Kinematics;
 import com.acmerobotics.roadrunner.drive.MecanumKinematics;
-import com.acmerobotics.roadrunner.path.Path;
 import com.acmerobotics.roverruckus.hardware.LynxOptimizedI2cFactory;
+import com.acmerobotics.roverruckus.trajectory.SplineTrajectory;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -24,7 +24,6 @@ import com.qualcomm.robotcore.util.Range;
 
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.intellij.lang.annotations.JdkConstants;
 
 import java.util.ArrayList;
 import java.util.List;

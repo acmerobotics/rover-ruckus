@@ -1,7 +1,5 @@
 package com.acmerobotics.roverruckus.trajectory;
 
-import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -14,17 +12,7 @@ import com.acmerobotics.roadrunner.util.Angle;
 import com.acmerobotics.roverruckus.robot.MecanumDrive;
 import com.acmerobotics.roverruckus.util.PIDController;
 
-@Config
-public class Trajectory {
-    public static double AXIAL_P = 6;
-    public static double AXIAL_I = 0;
-    public static double AXIAL_D = 0;
-    public static double LATERAL_P = 6;
-    public static double LATERAL_I = 0;
-    public static double LATERAL_D = 0;
-    public static double HEADING_P = 6;
-    public static double HEADING_I = 0;
-    public static double HEADING_D = 0;
+public class SplineTrajectory extends Trajectory {
 
     private Path path;
     private MotionProfile axialProfile;
@@ -35,11 +23,11 @@ public class Trajectory {
     private boolean complete = false;
     private double error = 0, axialError = 0, lateralError = 0, averageHeadingError = 0;
 
-    public Trajectory (Path path) {
+    public SplineTrajectory(Path path) {
         this (path, 0, false);
     }
 
-    public Trajectory (Path path, double startAccelerate, boolean stopAccelerate) {
+    public SplineTrajectory(Path path, double startAccelerate, boolean stopAccelerate) {
 
         this.path = path;
         this.axialProfile = MotionProfileGenerator.generateSimpleMotionProfile(
@@ -59,16 +47,18 @@ public class Trajectory {
 
     long lastupdate = 0;
 
+    @Override
     public synchronized Pose2d update(double t, Pose2d pose, TelemetryPacket packet) {
         if (t >= duration) complete = true;
         Pose2d targetPose = path.get(axialProfile.get(t).getX());
         double theta = Angle.norm(path.deriv(axialProfile.get(t).getX()).pos().angle());
 
         Pose2d targetVelocity = path.deriv(axialProfile.get(t).getX()).times(axialProfile.get(t).getV());
+        Vector2d trackingError = pose.pos().minus(targetPose.pos()).rotated(-theta);
+
         packet.fieldOverlay().setStroke("green");
         packet.fieldOverlay().strokeLine(pose.getX(), pose.getY(), pose.getX() + targetVelocity.getX(), pose.getY() + targetVelocity.getY());
 
-        Vector2d trackingError = pose.pos().minus(targetPose.pos()).rotated(-theta);
         packet.put("theta", theta);
 
         Vector2d trackingCorrection = new Vector2d(
@@ -125,28 +115,32 @@ public class Trajectory {
         return targetVelocity.minus(correction);
     }
 
+    @Override
     public synchronized boolean isComplete() {
         return complete;
     }
 
-    public synchronized double averageError() {
-        return complete ? error / duration: 0;
-    }
+//    public synchronized double averageError() {
+//        return complete ? error / duration: 0;
+//    }
+//
+//    public synchronized double avergeLateralError() {return complete ? lateralError / duration: 0;}
+//
+//    public synchronized double averageAxialError() {return complete ? axialError / duration: 0;}
+//
+//    public synchronized double averageHeadingError() {return complete ? averageHeadingError / duration: 0;}
 
-    public synchronized double avergeLateralError() {return complete ? lateralError / duration: 0;}
-
-    public synchronized double averageAxialError() {return complete ? axialError / duration: 0;}
-
-    public synchronized double averageHeadingError() {return complete ? averageHeadingError / duration: 0;}
-
-    public Pose2d poseAt(double t) {
+    @Override
+    public Pose2d getPose(double t) {
         return path.get(axialProfile.get(t).getX());
     }
 
+    @Override
     public double getV(double t) {
         return axialProfile.get(t).getV();
     }
 
+    @Override
     public double duration() {
         return axialProfile.duration();
     }
