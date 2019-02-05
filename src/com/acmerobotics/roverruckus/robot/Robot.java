@@ -30,6 +30,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.GlobalWarningSource;
 import com.qualcomm.robotcore.util.RobotLog;
 
+import org.firstinspires.ftc.robotcontroller.internal.configuration.OpModeConfiguration;
 import org.firstinspires.ftc.robotcore.internal.collections.EvictingBlockingQueue;
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeManagerImpl;
 
@@ -47,7 +48,6 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     public MecanumDrive drive;
     public Lift lift;
     public Intake intake;
-//    public Placer placer;
     private List<Subsystem> subsystems;
 
     private Map<DcMotorController, LynxModuleIntf> hubs;
@@ -65,12 +65,15 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 
     private LinearOpMode master;
 
+    public OpModeConfiguration config;
+
     public Robot(LinearOpMode opMode, HardwareMap map) {
         this.master = opMode;
         subsystems = new ArrayList<>();
         packets = new EvictingBlockingQueue<>(new ArrayBlockingQueue<TelemetryPacket>(10));
         telemetry = new HashMap<>();
         telemetryLines = new ArrayList<>();
+        config = new OpModeConfiguration(map.appContext);
 
 //        try {
             drive = new MecanumDrive(this, map);
@@ -291,9 +294,12 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         for (;;) {
             update();
             boolean complete = true;
+            telemetryLines.clear();
             for (Subsystem subsystem : subsystems) {
                 if (subsystem.isBusy()) {
-//                    telemetryLines.add(subsystem.getClass().getSimpleName() + " is busy");
+                    String string = subsystem.getClass().getCanonicalName() + " is busy";
+                    if (!telemetryLines.contains(string))
+                    telemetryLines.add(subsystem.getClass().getSimpleName() + " is busy");
                     complete = false;
                 }
             }

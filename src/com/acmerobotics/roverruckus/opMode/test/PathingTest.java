@@ -1,12 +1,9 @@
 package com.acmerobotics.roverruckus.opMode.test;
 
 import android.media.SoundPool;
-import android.os.Environment;
 
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.path.Path;
-import com.acmerobotics.roadrunner.path.PathBuilder;
-import com.acmerobotics.roadrunner.path.heading.ConstantInterpolator;
 import com.acmerobotics.roverruckus.robot.Robot;
 import com.acmerobotics.roverruckus.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roverruckus.trajectory.Waypoint;
@@ -39,19 +36,19 @@ public class PathingTest extends LinearOpMode {
 
        robot.drive.setCurrentEstimatedPose(lander.pos());
 
-       SuperArrayList<Path> paths = new TrajectoryBuilder(lander).to(sample).to(depot).to(almostThere).to(crater).build();
+//       SuperArrayList<Path> paths = new TrajectoryBuilder(lander).to(sample).to(depot).to(almostThere).to(crater).build();
 //       SuperArrayList<Path> paths = new SuperArrayList<>();
 //       paths.add(new PathBuilder(lander)
 //               .splineTo(sample, new ConstantInterpolator(lander.getHeading()))
 //               .splineTo(depot, new ConstantInterpolator(lander.getHeading())).build());
 //       paths.add(new PathBuilder(depot).splineTo(crater, new ConstantInterpolator(lander.getHeading())).build());
 
-       for (Path path: paths) {
-           robot.drive.followPath(path);
-           robot.waitForAllSubsystems();
-       }
-       pool.stop(id);
-       pool.unload(id);
+//       for (Path path: paths) {
+//           robot.drive.followTrajectory(path);
+//           robot.waitForAllSubsystems();
+//       }
+//       pool.stop(id);
+//       pool.unload(id);
 
    }
 

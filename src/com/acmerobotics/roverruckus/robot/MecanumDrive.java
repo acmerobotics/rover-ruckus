@@ -24,6 +24,7 @@ import com.qualcomm.robotcore.util.Range;
 
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.intellij.lang.annotations.JdkConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -182,8 +183,8 @@ public class MecanumDrive extends Subsystem{
         this.targetVelocity = target;
     }
 
-    public void followPath (Path path) {
-        trajectory = new Trajectory(path);
+    public void followTrajectory(Trajectory trajectory) {
+        this.trajectory = trajectory;
         currentMode = Mode.FOLLOWING_PATH;
         startTime = System.currentTimeMillis();
     }
@@ -220,7 +221,11 @@ public class MecanumDrive extends Subsystem{
 
             case FOLLOWING_PATH:
                 internalSetVelocity(Kinematics.fieldToRobotPoseVelocity(currentEstimatedPose, trajectory.update((System.currentTimeMillis() - startTime) / 1000.0, currentEstimatedPose, packet)));
-                if (trajectory.isComplete()) currentMode = Mode.OPEN_LOOP;
+                if (trajectory.isComplete()) {
+                    currentMode = Mode.OPEN_LOOP;
+                    internalSetVelocity(new Pose2d());
+                    targetVelocity = new Pose2d();
+                }
                 break;
 
             case HOLD_POSITION:
@@ -304,4 +309,16 @@ public class MecanumDrive extends Subsystem{
         currentMode = Mode.HOLD_POSITION;
         estimatingPose = true;
     }
+
+    public void setFloatMotors(boolean floatMotors) {
+       if (floatMotors) {
+           for (DcMotorEx motor: motors) motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+           targetVelocity = new Pose2d();
+           currentMode = Mode.OPEN_LOOP;
+       } else {
+           for (DcMotorEx motor: motors) motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+       }
+    }
+
+
 }

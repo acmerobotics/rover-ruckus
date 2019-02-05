@@ -27,10 +27,13 @@ public class SamplingVision {
     public static int K_SIZE = 20;
     public static int BLUR_SIZE = 5;
     public static int DISPLAY = 0;
+    public static int THRESHOLD = 300;
     private static int i = 0;
+    private static GoldLocation location = GoldLocation.CENTER;
 
     private static double x = 0;
     private static double y = 0;
+    private static boolean enabled = false;
 
     public synchronized static double getX () {
         return x;
@@ -41,10 +44,10 @@ public class SamplingVision {
     }
 
     public synchronized static Mat processFrame (Mat in) {
+        if (!enabled) return in;
         i = 0;
-        Mat ret = null;
         Mat frame = Mat.zeros(in.size(), in.type());
-        ret = in;
+        Mat ret = in;
         Imgproc.blur(in, frame, new Size(BLUR_SIZE,BLUR_SIZE));
         if (display()) ret = frame;
         Imgproc.cvtColor(frame, frame, Imgproc.COLOR_RGB2HSV);
@@ -74,9 +77,11 @@ public class SamplingVision {
                 }
             }
             x = best.center.x;
+            if (x < THRESHOLD) location = GoldLocation.LEFT;
+            else location = GoldLocation.CENTER;
             y = best.center.y;
             Imgproc.rectangle(in, new Point(best.boundingRect().x, best.boundingRect().y), new Point(best.boundingRect().x + best.boundingRect().width, best.boundingRect().y + best.boundingRect().height), new Scalar(255, 0, 0), 5);
-        }
+        } else location = GoldLocation.RIGHT;
         if (display()) ret = in;
         return ret;
     }
@@ -85,5 +90,19 @@ public class SamplingVision {
         i ++;
         return i == DISPLAY;
     }
+
+    public static GoldLocation getLocation () {
+        return location;
+    }
+
+    public static void enable () {
+        enabled = true;
+    }
+
+    public static void disable () {
+        enabled = false;
+    }
+
+    private SamplingVision () {} //static class
 
 }

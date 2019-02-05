@@ -20,7 +20,7 @@ public class Placer extends Subsystem {
     public static double gateClose = .1;
 
     public static double intakeOpen = .4;
-    public static double intakeClose = .9;
+    public static double intakeClose = .7;
 
     public static double colorThreshold = 1.5;
     public static double distanceThreshold = 6;

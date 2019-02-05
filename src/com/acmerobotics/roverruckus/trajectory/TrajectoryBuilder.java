@@ -24,10 +24,10 @@ public class TrajectoryBuilder {
 
     }
 
-    public SuperArrayList<Path> build () {
-        SuperArrayList<Path> trajectories = new SuperArrayList<>();
+    public SuperArrayList<Trajectory> build () {
+        SuperArrayList<Trajectory> trajectories = new SuperArrayList<>();
         for (PathBuilder path: paths) {
-            trajectories.add(path.build());
+            trajectories.add(new Trajectory(path.build()));
         }
         return trajectories;
     }

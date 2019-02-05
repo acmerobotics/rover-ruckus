@@ -1,26 +1,38 @@
 package com.acmerobotics.roverruckus.opMode.test;
 
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.Vector2d;
-import com.acmerobotics.roadrunner.path.PathBuilder;
-import com.acmerobotics.roadrunner.path.heading.LinearInterpolator;
+import com.acmerobotics.roverruckus.opMode.auto.AutoPaths;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
+import com.acmerobotics.roverruckus.vision.GoldLocation;
 
+import org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class TrajectoryTest {
     public static void main(String[] args) throws FileNotFoundException, IOException {
-        Trajectory trajectory = new Trajectory(new PathBuilder(new Pose2d()).lineTo(new Vector2d(48, 0), new LinearInterpolator(0, Math.PI)).build());
-        FileWriter writer = new FileWriter("trajectory.csv");
-//        writer.write("vx, vy, omega");
-        for (double t = 0; !trajectory.isComplete(); t += .01) {
-            Pose2d update = trajectory.update(t, new Pose2d(), new TelemetryPacket());
-            writer.write(String.format("%f, %f, %f, %f \n", t, update.getX(), update.getY(), update.getHeading()));
+        for (StartLocation start: StartLocation.values())
+            for (GoldLocation loc: GoldLocation.values()) {
+                String name = String.format("./out/paths/%s_%s.csv", start, loc);
+                System.out.println(name);
+                File outputDir = new File("./out/paths");
+                outputDir.mkdirs();
+                FileWriter writer = new FileWriter(name);
 
-        }
-        writer.flush();
+                ArrayList<Trajectory> trajectories = new AutoPaths(loc, start).paths();
+                for (Trajectory trajectory: trajectories) {
+                    for (double t = 0; t <= trajectory.duration(); t += .1) {
+                        Pose2d pose = trajectory.poseAt(t);
+                        double v = trajectory.getV(t);
+                        writer.write(String.format("%f, %f, %f, %f\n", pose.getX(), pose.getY(), pose.getHeading(), v));
+                    }
+                    writer.write("\n");
+                }
+                writer.flush();
+                writer.close();
+            }
     }
 }

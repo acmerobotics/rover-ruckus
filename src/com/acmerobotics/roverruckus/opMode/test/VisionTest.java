@@ -14,6 +14,7 @@ public class VisionTest extends LinearOpMode {
     public void runOpMode() {
 
         waitForStart();
+        SamplingVision.enable();
 
         while (!isStopRequested()) {
             CameraFrameGrabber.getInstance().setOverlay(SamplingVision.processFrame(CameraFrameGrabber.getInstance().getFrame()));

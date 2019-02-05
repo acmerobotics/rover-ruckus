@@ -19,7 +19,7 @@ public class Trajectory {
     public static double AXIAL_P = 6;
     public static double AXIAL_I = 0;
     public static double AXIAL_D = 0;
-    public static double LATERAL_P = 20;
+    public static double LATERAL_P = 6;
     public static double LATERAL_I = 0;
     public static double LATERAL_D = 0;
     public static double HEADING_P = 6;
@@ -35,17 +35,19 @@ public class Trajectory {
     private boolean complete = false;
     private double error = 0, axialError = 0, lateralError = 0, averageHeadingError = 0;
 
-
     public Trajectory (Path path) {
+        this (path, 0, false);
+    }
+
+    public Trajectory (Path path, double startAccelerate, boolean stopAccelerate) {
 
         this.path = path;
         this.axialProfile = MotionProfileGenerator.generateSimpleMotionProfile(
-                new MotionState(0, 0, 0, 0),
-                new MotionState(path.length(), 0, 0, 0),
+                new MotionState(0, 0, startAccelerate, 0),
+                new MotionState(path.length(), 0, stopAccelerate ? -MecanumDrive.axialMaxA : 0, 0),
                 MecanumDrive.axialMaxV,
                 MecanumDrive.axialMaxA,
                 MecanumDrive.axialMaxJ
-//                true
         );
         duration = axialProfile.duration();
 
@@ -136,5 +138,17 @@ public class Trajectory {
     public synchronized double averageAxialError() {return complete ? axialError / duration: 0;}
 
     public synchronized double averageHeadingError() {return complete ? averageHeadingError / duration: 0;}
+
+    public Pose2d poseAt(double t) {
+        return path.get(axialProfile.get(t).getX());
+    }
+
+    public double getV(double t) {
+        return axialProfile.get(t).getV();
+    }
+
+    public double duration() {
+        return axialProfile.duration();
+    }
 
 }

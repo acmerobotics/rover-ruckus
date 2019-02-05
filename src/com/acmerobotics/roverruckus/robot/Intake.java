@@ -36,6 +36,7 @@ public class Intake extends Subsystem{
     private Servo rakeServo;
 
     private boolean driverControled = true;
+    private boolean profileComplete = true;
     private double armPower = 0;
     private MotionProfile armProfile;
     private PIDController controller;
@@ -77,6 +78,8 @@ public class Intake extends Subsystem{
                 MotionState targetState = armProfile.get(t);
                 targetV = targetState.getV();
                 targetX = targetState.getX();
+            } else {
+                profileComplete = true;
             }
             double error = getPosition() - targetX;
             double correction = controller.update(error);
@@ -92,6 +95,7 @@ public class Intake extends Subsystem{
         driverControled = false;
 
         startTime = System.currentTimeMillis();
+        profileComplete = false;
 
     }
 
@@ -132,6 +136,11 @@ public class Intake extends Subsystem{
     public void retractRake () {
         rakeUp();
         goToPosition(RAKE_RETRACT_DISTANCE);
+    }
+
+    @Override
+    public boolean isBusy() {
+        return !profileComplete;
     }
 
 

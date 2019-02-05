@@ -13,9 +13,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.IOException;
 
 @Autonomous(name="fftuning")
 @Config
@@ -68,11 +66,11 @@ public class FFTuning extends LinearOpMode{
 //            }
             robot.drive.setMotorPIDF(P, I, D, F);
             robot.drive.setCurrentEstimatedPose(new Pose2d());
-            robot.drive.followPath(new PathBuilder(new Pose2d()).lineTo(new Vector2d(DISTANCE, 0), new ConstantInterpolator(0)).build());
+//            robot.drive.followTrajectory(new PathBuilder(new Pose2d()).lineTo(new Vector2d(DISTANCE, 0), new ConstantInterpolator(0)).build());
             while (!isStopRequested() && robot.drive.isFollowingPath()) {
                 robot.update();
             }
-            robot.drive.followPath(new PathBuilder(new Pose2d(DISTANCE, 0, 0)).lineTo(new Vector2d(0, 0), new ConstantInterpolator(0)).build());
+//            robot.drive.followTrajectory(new PathBuilder(new Pose2d(DISTANCE, 0, 0)).lineTo(new Vector2d(0, 0), new ConstantInterpolator(0)).build());
             while (!isStopRequested() && robot.drive.isFollowingPath()) {
                 robot.update();
             }
