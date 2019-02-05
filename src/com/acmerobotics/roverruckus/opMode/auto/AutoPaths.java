@@ -109,17 +109,19 @@ public class AutoPaths {
                      .to(release)
                      .to(sample)
                      .to(depot)
+                     .turnTo(park.getHeading())
                      .to(park)
                      .build();
          else
              return new TrajectoryBuilder(startPosition)
                      .to(release)
-             .to(sample)
-             .to(CLEAR_ONE_CRATER)
-             .to(CLEAR_TWO_CRATER)
-             .to(depot)
-             .to(park)
-             .build();
+                     .to(sample)
+                     .to(CLEAR_ONE_CRATER)
+                     .to(CLEAR_TWO_CRATER)
+                     .to(depot)
+                     .turnTo(park.getHeading())
+                     .to(park)
+                     .build();
 
     }
 

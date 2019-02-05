@@ -9,6 +9,7 @@ public class TrajectoryBuilder {
     private Waypoint lastWaypoint;
     private SuperArrayList<Trajectory> trajectories;
     private PathBuilder currentPath;
+    private boolean added = false;
 
     public TrajectoryBuilder (Waypoint start) {
         lastWaypoint = start;
@@ -19,6 +20,7 @@ public class TrajectoryBuilder {
     public TrajectoryBuilder to (Waypoint waypoint) {
 
         currentPath.splineTo(waypoint.getEnter(), new GoodLinearInterpolator(lastWaypoint.getHeading(), waypoint.getHeading()));
+        added = true;
         lastWaypoint = waypoint;
         if (waypoint.getStop()) newPath();
         return this;
@@ -35,11 +37,13 @@ public class TrajectoryBuilder {
     }
 
     private void newPath () {
-        trajectories.add(new SplineTrajectory(currentPath.build()));
+        if (added) trajectories.add(new SplineTrajectory(currentPath.build()));
+        added = false;
         currentPath = new PathBuilder(lastWaypoint.getExit());
     }
 
     public SuperArrayList<Trajectory> build () {
+        newPath();
         return trajectories;
     }
 }
