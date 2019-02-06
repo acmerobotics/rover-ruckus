@@ -18,7 +18,7 @@ import java.util.List;
 @Config
 public class SamplingVision {
 
-    public static int MIN_HUE = 15;
+    public static int MIN_HUE = 5;
     public static int MIN_SAT = 150;
     public static int MIN_VAL = 0;
     public static int MAX_HUE = 30;

@@ -4,7 +4,6 @@ import android.util.Log;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roverruckus.robot.Robot;
-import com.acmerobotics.roverruckus.trajectory.SplineTrajectory;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.vision.GoldLocation;
 import com.acmerobotics.roverruckus.vision.SamplingVision;
@@ -20,9 +19,6 @@ import java.util.ArrayList;
 @Autonomous(name="Auto")
 public class Auto extends LinearOpMode {
 
-    public static double RELEASE_X = 0;
-    public static double RELEASE_Y = 2;
-
     public static final String TAG = "autonomous";
 
     @Override
@@ -36,7 +32,7 @@ public class Auto extends LinearOpMode {
         GoldLocation location = SamplingVision.getLocation();
         Log.i(TAG, location.toString());
         SamplingVision.disable();
-        AutoPaths autoPaths = new AutoPaths(location, robot.config.getStartLocation());
+        AutoPaths autoPaths = new AutoPaths(location, robot.config.getStartLocation(), robot.config.getSampleBoth());
         ArrayList<Trajectory> trajectories = autoPaths.paths();
 
 
@@ -48,36 +44,26 @@ public class Auto extends LinearOpMode {
         }
         robot.drive.setCurrentEstimatedPose(autoPaths.start().pos());
 
-//        SplineTrajectory release = new TrajectoryBuilder(new Waypoint(robot.drive.getCurrentEstimatedPose(), -Math.PI / 2))
-//                .to(new Waypoint(new Pose2d(RELEASE_X, RELEASE_Y, -Math.PI/12), -Math.PI/4))
-//                .build().get(0);
-//        Log.i(TAG, "path duration: " + release.duration());
-//        robot.drive.followTrajectory(release);
-//        robot.waitForAllSubsystems();
-//        Log.i(TAG, "path complete");
-
-//        autoPaths = new AutoPaths(location, robot.config.getStartLocation(), robot.drive.getCurrentEstimatedPose());
-
-
-        for (int i = 0; i < trajectories.size(); i++) {
-            robot.drive.followTrajectory(trajectories.get(i));
+        for (Trajectory trajectory: trajectories) {
+            robot.drive.followTrajectory(trajectory);
             robot.waitForAllSubsystems();
-            if (i == 1 && robot.config.getStartLocation() == StartLocation.DEPOT) {
-                robot.lift.markerUp();
-                Log.e(TAG, "released marker");
+
+            if (trajectory.containsFlag(AutoFlag.RELEASE_MARKER)) {
+                robot.lift.releaseMarker();
             }
-            if (i == 2 && robot.config.getStartLocation() == StartLocation.CRATER) {
-                robot.lift.markerDown();
-                Log.e(TAG, "released marker");
+
+            if (trajectory.containsFlag(AutoFlag.LOWER_LIFT)) {
+                robot.lift.setAsynch(true);
+                robot.lift.lower();
             }
         }
 
-//        robot.intake.retractRake();
-//        robot.waitForAllSubsystems();
-//        robot.intake.setIntakePower(1);
+        robot.intake.retractRake();
+        robot.waitForAllSubsystems();
+        robot.intake.setIntakePower(1);
+        robot.pause(1000);
+        robot.intake.setIntakePower(0);
 
-        while (opModeIsActive());
-//        robot.intake.setIntakePower(0);
     }
 
 }

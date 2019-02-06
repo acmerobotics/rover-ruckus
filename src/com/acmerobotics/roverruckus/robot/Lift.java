@@ -45,14 +45,15 @@ public class Lift extends Subsystem{
     public static double DUMP_UP = .15;
     public static double RATCHET_ENGAGE = .5;
     public static double RATCHET_DISENGAGE = .85;
-    public static double MARKER_UP = .15;
-    public static double MARKER_DOWN = .9;
+    public static double MARKER_UP = .6;
+    public static double MARKER_DOWN = .3;
     public static double LIFT_LATCH = 15.5;
     public static double LIFT_SCORE = 23;
     public static double LIFT_MAX = 23;
     public static double LIFT_E_DUMP = 9;
     public static double LIFT_FIND_LATCH_START = 12;
     public static double LIFT_CLEARANCE = 10.25;
+    public static double LIFT_DOWN = 1;
 
     public static double FIND_LATCH_V = .3;
 
@@ -82,6 +83,7 @@ public class Lift extends Subsystem{
     private boolean openGateOnCompletion = false;
     private boolean emergencyDumpOnCompletion = false;
     private boolean findLatchOnCompletion = false;
+    private boolean asynch = false;
 
     private enum LiftMode{
         RUN_TO_POSITION,
@@ -96,7 +98,10 @@ public class Lift extends Subsystem{
     public Placer placer;
     private boolean gateArmClosed = false;
 
+    private Robot robot;
+
     public Lift(Robot robot, HardwareMap hardwareMap){
+        this.robot = robot;
         motor1 = hardwareMap.get(DcMotorEx.class, "liftMotor1");
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
         motor1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -115,7 +120,7 @@ public class Lift extends Subsystem{
 
         placer = new Placer(hardwareMap);
 
-        markerUp();
+        markerDown();
         engageRatchet();
         dumpDown();
         placer.reset();
@@ -163,6 +168,7 @@ public class Lift extends Subsystem{
                 packet.put("error", error);
                 correction = pidController.update(error);
                 internalSetVelocity(-correction);
+                packet.put("liftCorrection", -correction);
                 break;
             case LOWERING:
                 error = distance.getUnscaledDistance() - LOWER_DISTANCE;
@@ -288,7 +294,7 @@ public class Lift extends Subsystem{
     }
 
     public void liftBottom () {
-        goToPosition(0);
+        goToPosition(LIFT_DOWN);
         setDumpOnCompletion(DUMP_DOWN);
         openGateOnCompletion = true;
     }
@@ -321,7 +327,7 @@ public class Lift extends Subsystem{
 
     @Override
     public boolean isBusy() {
-            return Arrays.asList(LiftMode.RUN_TO_POSITION, LiftMode.LOWERING, LiftMode.FIND_LATCH).contains(liftMode);
+        return !asynch && Arrays.asList(LiftMode.RUN_TO_POSITION, LiftMode.LOWERING, LiftMode.FIND_LATCH).contains(liftMode);
     }
 
     public boolean isSensor () {
@@ -332,4 +338,15 @@ public class Lift extends Subsystem{
         findLatchOnCompletion = true;
         goToPosition(LIFT_FIND_LATCH_START);
     }
+
+    public void releaseMarker () {
+        markerUp();
+        robot.pause(1000);
+        markerDown();
+    }
+
+    public void setAsynch (boolean asynch) {
+        this.asynch = asynch;
+    }
 }
+

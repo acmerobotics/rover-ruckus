@@ -20,7 +20,9 @@ public class PointTurnTrajectory extends Trajectory{
 
     public PointTurnTrajectory (Pose2d start, double targetAngle) {
         this.start = start;
+        System.out.println(start.getHeading());
         double turnAngle = Angle.norm (targetAngle - start.getHeading());
+        System.out.println(turnAngle);
         profile = MotionProfileGenerator.generateSimpleMotionProfile(
                 new MotionState(0, 0, 0, 0),
                 new MotionState(turnAngle, 0,0,0),
@@ -40,7 +42,7 @@ public class PointTurnTrajectory extends Trajectory{
         Pose2d targetState = getPose(t);
         Pose2d targetVelocity = new Pose2d(new Vector2d(), getV(t));
 
-        double headingError = pose.getHeading() - targetState.getHeading();
+        double headingError = Angle.norm(pose.getHeading() - targetState.getHeading());
         Vector2d trackingError = pose.pos().minus(targetState.pos());
         double trackingErrorMag = trackingError.norm();
 

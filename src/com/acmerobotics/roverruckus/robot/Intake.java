@@ -1,5 +1,7 @@
 package com.acmerobotics.roverruckus.robot;
 
+import android.util.Log;
+
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.control.PIDFController;
@@ -15,21 +17,24 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
 /**
  * Created by Emma Sheffo on 11/16/2018.
  */
 @Config
 public class Intake extends Subsystem{
+    public static final String TAG = "intake";
     public static double RAKE_UP = .8;
     public static double RAKE_DOWN = .35;
     public static double WINCH_RADIUS = .5;
-    public static double MAX_V = 10;
-    public static double MAX_A = 10;
-    public static double MAX_J = 10;
-    public static double P = 0;
+    public static double MAX_V = 30;
+    public static double MAX_A =30;
+    public static double MAX_J = 15;
+    public static double P = -10;
     public static double I = 0;
     public static double D = 0;
-    public static double RAKE_RETRACT_DISTANCE = 2;
+    public static double RAKE_RETRACT_DISTANCE = 6.5;
 
     private DcMotorEx rakeMotor, intakeMotor;
 
@@ -42,6 +47,7 @@ public class Intake extends Subsystem{
     private PIDController controller;
     private long startTime;
     private double offset = 0;
+    private double targetX = 0;
 
     public Intake(Robot robot, HardwareMap map) {
 
@@ -56,34 +62,47 @@ public class Intake extends Subsystem{
         rakeServo = map.get(Servo.class, "rake");
         setPosition(0);
         controller = new PIDController(P, I, D);
+        rakeUp();
 
     }
 
     public void setArmPower(double power) {
         armPower = power;
-        driverControled = driverControled || Math.abs(power) > .1;
+        driverControled = driverControled  || power > 0 ;
     }
 
     @Override
     public void update(TelemetryPacket packet) {
         packet.put("rakePosition", getPosition());
-        if (driverControled) {
+        Log.i(TAG, "position: " + getPosition());
+        Log.i(TAG, "driver controlled: " + driverControled);
+        Log.i(TAG, "complete" + profileComplete);
+        if (driverControled && armPower != 0) {
             rakeMotor.setPower(armPower);
+            targetX = getPosition();
+
         } else {
             long now = System.currentTimeMillis();
             double t = (now - startTime) / 1000.0;
+            Log.i(TAG, "t: " + t);
+//            Log.i(TAG, "duration" + armProfile.duration());
             double targetV = 0;
-            double targetX = armProfile.end().getX();
-            if (t <= armProfile.duration()) {
+            if (armProfile != null && t <= armProfile.duration()) {
                 MotionState targetState = armProfile.get(t);
                 targetV = targetState.getV();
+                Log.i(TAG, "targetV: " + targetV);
                 targetX = targetState.getX();
+                Log.i(TAG, "targetX:" + targetX);
             } else {
                 profileComplete = true;
             }
             double error = getPosition() - targetX;
+            Log.i(TAG, "error" + error);
+            packet.put("rakeError", error);
             double correction = controller.update(error);
-            rakeMotor.setVelocity((targetV + correction) / WINCH_RADIUS);
+            Log.i(TAG, "correction: " + correction);
+            packet.put("command", targetV + correction);
+            rakeMotor.setVelocity((targetV + correction) / WINCH_RADIUS, AngleUnit.RADIANS);
         }
     }
 
@@ -104,7 +123,7 @@ public class Intake extends Subsystem{
     }
 
     public void setPosition (double position) {
-        offset = getPosition() - offset + position;
+        offset = -(getPosition() - offset + position);
     }
 
 

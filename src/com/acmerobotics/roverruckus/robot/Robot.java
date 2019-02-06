@@ -314,14 +314,10 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     }
 
 
-//    public void pause (long millis) {
-//        long start = System.currentTimeMillis();
-//
-// long remaining;
-//        while ((remaining = (millis - (System.currentTimeMillis() - start)) > 0) {
-//            try {
-//                Thread.sleep(end - System.currentTimeMillis());
-//            }
-//        }
-//    }
+    public void pause (long millis) {
+        long start = System.currentTimeMillis();
+        while (((millis + start) - System.currentTimeMillis()) > 0) {
+            update();
+        }
+    }
 }

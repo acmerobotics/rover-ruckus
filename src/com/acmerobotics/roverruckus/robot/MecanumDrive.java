@@ -63,13 +63,13 @@ public class MecanumDrive extends Subsystem{
     private static final double radius = 2;
 //    private static final double ticksPerInch = (2240 * 4) / (radius * 2 * Math.PI);
 
-    public static double axialMaxV = 10;
-    public static double axialMaxA = 10;
-    public static double axialMaxJ = 10;
+    public static double axialMaxV = 30;
+    public static double axialMaxA = 30;
+    public static double axialMaxJ = 30;
 
-    public static double headingMaxV = 5;
-    public static double headingMaxA = 5;
-    public static double headingMaxJ = 5;
+    public static double headingMaxV = 3;
+    public static double headingMaxA = 3;
+    public static double headingMaxJ = 3;
 
     public static double HOLD_POSITION_P = 1;
     public static double HOLD_POSITION_I = 1;

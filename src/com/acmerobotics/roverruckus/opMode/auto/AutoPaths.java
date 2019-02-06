@@ -41,12 +41,16 @@ public class AutoPaths {
     private static final Waypoint MARKER_DEPOT = new Waypoint(new Pose2d(48, 60, -PI/2), PI/2, PI);
     private static final Waypoint MARKER_DEPOT_LEFT = new Waypoint(new Pose2d(48, 60, -PI/2), 0, PI);
 
-    private static final Waypoint PARK_CRATER = new Waypoint(new Pose2d(60, -12, -PI/2), -PI/2);
-    private static final Waypoint PARK_DEPOT = new Waypoint(new Pose2d(-12, 60, -PI), -PI);
+    private static final Waypoint PARK_CRATER = new Waypoint(new Pose2d(63, -12, -PI/2), -PI/2);
+    private static final Waypoint PARK_DEPOT = new Waypoint(new Pose2d(-12, 63, -PI), -PI);
 
     private static final Waypoint SAMPLE_LEFT_CRATER = new Waypoint(new Pose2d(36 + SAMPLE_DIST, -(12 + SAMPLE_DIST), PI/4), -PI/4, PI/4);
     private static final Waypoint SAMPLE_CENTER_CRATER = new Waypoint(new Pose2d(24+ SAMPLE_DIST, -(24 + SAMPLE_DIST), PI/4), -PI/4, 3*PI/4);
     private static final Waypoint SAMPLE_RIGHT_CRATER = new Waypoint(new Pose2d(12+ SAMPLE_DIST, -(36 + SAMPLE_DIST), PI/4), -PI/4, 3*PI/4);
+
+    private static final Waypoint SAMPLE_LEFT_SECOND = new Waypoint (new Pose2d(36 - SAMPLE_DIST, 60 - SAMPLE_DIST, -PI/4), -3*PI/4, PI/4);
+    private static final Waypoint SAMPLE_CENTER_SECOND = new Waypoint (new Pose2d(48 - SAMPLE_DIST, 48 - SAMPLE_DIST, -PI/4), -3*PI/4, PI/4);
+    private static final Waypoint SAMPLE_RIGHT_SECOND= new Waypoint (new Pose2d(60 - SAMPLE_DIST, 36 - SAMPLE_DIST, -PI/4), -3*PI/4, PI/4);
 
     private static final Waypoint SAMPLE_LEFT_DEPOT = new Waypoint(new Pose2d(24, 48, -PI/4), PI/4);
     private static final Waypoint SAMPLE_CENTER_DEPOT = new Waypoint(new Pose2d(36, 36, -PI/4), PI/3);
@@ -57,16 +61,25 @@ public class AutoPaths {
 
     private GoldLocation location;
     private StartLocation start;
+    private boolean sampleBoth;
     private Waypoint startPosition;
     private Waypoint depot;
+    private Waypoint firstDepot;
     private Waypoint sample;
     private Waypoint park;
     private Waypoint release;
+    private Waypoint sampleSecond;
+    private Waypoint clearOne;
+    private Waypoint clearTwo;
 
 
-    public AutoPaths (GoldLocation location, StartLocation start) {
+    public AutoPaths (GoldLocation location, StartLocation start, boolean sampleBoth) {
         this.location = location;
         this.start = start;
+        this.sampleBoth = sampleBoth && start == StartLocation.CRATER;
+
+        clearOne = CLEAR_ONE_CRATER;
+        clearTwo = CLEAR_TWO_CRATER;
 
         if (start == StartLocation.CRATER) {
             startPosition = START_CRATER;
@@ -76,12 +89,15 @@ public class AutoPaths {
             switch (location) {
                 case LEFT:
                     sample = SAMPLE_LEFT_CRATER;
+                    sampleSecond = SAMPLE_LEFT_SECOND;
                     break;
                 case CENTER:
                     sample = SAMPLE_CENTER_CRATER;
+                    sampleSecond = SAMPLE_CENTER_SECOND;
                     break;
                 case RIGHT:
                     sample = SAMPLE_RIGHT_CRATER;
+                    sampleSecond = SAMPLE_RIGHT_SECOND;
             }
         } else {
             startPosition = START_DEPOT;
@@ -101,27 +117,38 @@ public class AutoPaths {
                     sample = SAMPLE_RIGHT_DEPOT;
             }
         }
+
+        if (sampleBoth) {
+            firstDepot = new Waypoint(depot.pos(), depot.getEnter().getHeading(), location == GoldLocation.RIGHT ? -PI/2 : PI);
+            depot = new Waypoint(depot.pos(), 0, depot.getExit().getHeading());
+            if (location == GoldLocation.RIGHT) clearTwo = new Waypoint(SAMPLE_RIGHT_DEPOT.pos(), PI/2);
+        }
+
     }
 
     public ArrayList<Trajectory> paths () {
-         if (start == StartLocation.DEPOT || location == GoldLocation.LEFT)
-             return new TrajectoryBuilder(startPosition)
-                     .to(release)
-                     .to(sample)
-                     .to(depot)
+        TrajectoryBuilder builder = new TrajectoryBuilder(startPosition)
+                .to(release)
+                .addFlag(AutoFlag.LOWER_LIFT)
+                .to(sample);
+         if (start == StartLocation.CRATER && location != GoldLocation.LEFT)
+             builder
+                     .to(clearOne)
+                     .to(clearTwo);
+
+         if (sampleBoth && location != GoldLocation.RIGHT)
+             builder
+                     .to(firstDepot)
+                     .to(sampleSecond);
+
+         builder.to(depot);
+
+         builder
+                     .addFlag(AutoFlag.RELEASE_MARKER)
                      .turnTo(park.getHeading())
-                     .to(park)
-                     .build();
-         else
-             return new TrajectoryBuilder(startPosition)
-                     .to(release)
-                     .to(sample)
-                     .to(CLEAR_ONE_CRATER)
-                     .to(CLEAR_TWO_CRATER)
-                     .to(depot)
-                     .turnTo(park.getHeading())
-                     .to(park)
-                     .build();
+                     .to(park);
+
+         return builder.build();
 
     }
 
