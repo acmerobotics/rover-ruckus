@@ -6,12 +6,12 @@ import com.acmerobotics.roverruckus.robot.Placer;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-@TeleOp(name="placerTest")
+@TeleOp(name = "placerTest")
 public class PlacerTest extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        Placer place = new Placer (hardwareMap);
+        Placer place = new Placer(hardwareMap);
 
         waitForStart();
 

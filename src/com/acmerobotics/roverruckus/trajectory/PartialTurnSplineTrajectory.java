@@ -10,8 +10,8 @@ public class PartialTurnSplineTrajectory extends SplineTrajectory {
     private PointTurnTrajectory turn;
     private Vector2d loc;
 
-    public PartialTurnSplineTrajectory (Path path, double theta) {
-        super (path);
+    public PartialTurnSplineTrajectory(Path path, double theta) {
+        super(path);
         loc = path.start().pos();
         turn = new PointTurnTrajectory(path.start(), theta);
     }
@@ -25,7 +25,7 @@ public class PartialTurnSplineTrajectory extends SplineTrajectory {
     }
 
     @Override
-    public Pose2d getPose (double t) {
+    public Pose2d getPose(double t) {
         return new Pose2d(super.getPose(t).pos(), turn.getPose(t).getHeading());
     }
 

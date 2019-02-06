@@ -1,26 +1,19 @@
 package com.acmerobotics.roverruckus.opMode.test;
 
-import android.os.Environment;
-import android.util.Log;
-
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roverruckus.robot.Robot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-
-import java.io.File;
-import java.io.FileWriter;
 
 @Config
-@Autonomous(name="liftProfile")
+@Autonomous(name = "liftProfile")
 public class LiftTest extends LinearOpMode {
 
     public static double distance = 20;
 
 
     @Override
-    public void runOpMode () {
+    public void runOpMode() {
         Robot robot = new Robot(this, hardwareMap);
 
 

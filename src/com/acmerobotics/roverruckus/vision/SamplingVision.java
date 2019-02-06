@@ -35,20 +35,20 @@ public class SamplingVision {
     private static double y = 0;
     private static boolean enabled = false;
 
-    public synchronized static double getX () {
+    public synchronized static double getX() {
         return x;
     }
 
-    public synchronized static double getY () {
+    public synchronized static double getY() {
         return y;
     }
 
-    public synchronized static Mat processFrame (Mat in) {
+    public synchronized static Mat processFrame(Mat in) {
         if (!enabled) return in;
         i = 0;
         Mat frame = Mat.zeros(in.size(), in.type());
         Mat ret = in;
-        Imgproc.blur(in, frame, new Size(BLUR_SIZE,BLUR_SIZE));
+        Imgproc.blur(in, frame, new Size(BLUR_SIZE, BLUR_SIZE));
         if (display()) ret = frame;
         Imgproc.cvtColor(frame, frame, Imgproc.COLOR_RGB2HSV);
         Core.inRange(frame, new Scalar(MIN_HUE, MIN_SAT, MIN_VAL), new Scalar(MAX_HUE, MAX_SAT, MAX_VAL), frame);
@@ -66,7 +66,7 @@ public class SamplingVision {
         if (contours.size() >= 1) {
             RotatedRect best = null;
             double max = 0;
-            for (MatOfPoint contour: contours) {
+            for (MatOfPoint contour : contours) {
                 MatOfPoint2f x = new MatOfPoint2f();
                 x.fromArray(contour.toArray());
                 RotatedRect rect = Imgproc.minAreaRect(x);
@@ -86,23 +86,24 @@ public class SamplingVision {
         return ret;
     }
 
-    private static boolean display () {
-        i ++;
+    private static boolean display() {
+        i++;
         return i == DISPLAY;
     }
 
-    public static GoldLocation getLocation () {
+    public static GoldLocation getLocation() {
         return location;
     }
 
-    public static void enable () {
+    public static void enable() {
         enabled = true;
     }
 
-    public static void disable () {
+    public static void disable() {
         enabled = false;
     }
 
-    private SamplingVision () {} //static class
+    private SamplingVision() {
+    } //static class
 
 }

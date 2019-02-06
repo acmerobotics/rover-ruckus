@@ -21,11 +21,10 @@ import java.util.Arrays;
 
 /**
  * Created by ACME Robotics on 9/25/2018.
- *
  */
 
 @Config
-public class Lift extends Subsystem{
+public class Lift extends Subsystem {
     public static double F_UP = .0917;
     public static double F_DOWN = .045;
     private double F = F_UP;
@@ -85,7 +84,7 @@ public class Lift extends Subsystem{
     private boolean findLatchOnCompletion = false;
     private boolean asynch = false;
 
-    private enum LiftMode{
+    private enum LiftMode {
         RUN_TO_POSITION,
         DRIVER_CONTROLLED,
         HOLD_POSITION,
@@ -100,7 +99,7 @@ public class Lift extends Subsystem{
 
     private Robot robot;
 
-    public Lift(Robot robot, HardwareMap hardwareMap){
+    public Lift(Robot robot, HardwareMap hardwareMap) {
         this.robot = robot;
         motor1 = hardwareMap.get(DcMotorEx.class, "liftMotor1");
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -135,7 +134,7 @@ public class Lift extends Subsystem{
     }
 
     @Override
-    protected void update(TelemetryPacket packet){
+    protected void update(TelemetryPacket packet) {
         packet.put("lift mode", liftMode.toString());
         packet.put("position", getPosition());
         packet.put("ratchet", ratchetEngaged);
@@ -204,12 +203,12 @@ public class Lift extends Subsystem{
 
     }
 
-    private void setDumpOnCompletion (double position) {
+    private void setDumpOnCompletion(double position) {
         dumpPositionOnCompletion = position;
         moveDumpOnCompletion = true;
     }
 
-    private void completionDump () {
+    private void completionDump() {
         if (moveDumpOnCompletion) dump.setPosition(dumpPositionOnCompletion);
         if (closePlacerOnCompletion) placer.closeArm();
         if (openGateOnCompletion) placer.openIntake();
@@ -236,13 +235,13 @@ public class Lift extends Subsystem{
         lowerStartTime = System.currentTimeMillis();
     }
 
-    public void goToPosition (double position) {
+    public void goToPosition(double position) {
         pidController = new PIDController(P, I, D);
         if (position > getPosition()) F = F_UP;
         else F = F_DOWN;
         profile = MotionProfileGenerator.generateSimpleMotionProfile(
-                new MotionState(getPosition(), 0 ,0 ,0),
-                new MotionState(position, 0 ,0 ,0),
+                new MotionState(getPosition(), 0, 0, 0),
+                new MotionState(position, 0, 0, 0),
                 V, A, J
         );
         startTime = System.currentTimeMillis();
@@ -264,7 +263,7 @@ public class Lift extends Subsystem{
         if (v <= 0 || !ratchetEngaged) internalSetVelocity(v);
     }
 
-    private void internalSetVelocity (double v) {
+    private void internalSetVelocity(double v) {
         if (v != 0 && liftMode != LiftMode.HOLD_POSITION) dumpMiddle();
         motor1.setPower(v);
         motor2.setPower(v);
@@ -286,34 +285,33 @@ public class Lift extends Subsystem{
         internalSetVelocity(0);
     }
 
-    public void liftTop () {
+    public void liftTop() {
         goToPosition(LIFT_SCORE);
         setDumpOnCompletion(DUMP_MIDDLE);
         closePlacerOnCompletion = true;
         gateArmClosed = false;
     }
 
-    public void liftBottom () {
+    public void liftBottom() {
         goToPosition(LIFT_DOWN);
         setDumpOnCompletion(DUMP_DOWN);
         openGateOnCompletion = true;
     }
 
-    public void dumpUp () {
+    public void dumpUp() {
         if (liftMode == LiftMode.RUN_TO_POSITION) setDumpOnCompletion(DUMP_UP);
         else if (getPosition() < LIFT_E_DUMP) {
             goToPosition(LIFT_E_DUMP);
             setDumpOnCompletion(DUMP_UP);
-        }
-        else dump.setPosition(DUMP_UP);
+        } else dump.setPosition(DUMP_UP);
         Log.e("the lift", "I guess the dump is supposed to go up lol");
     }
 
-    public void dumpMiddle () {
+    public void dumpMiddle() {
         dump.setPosition(DUMP_MIDDLE);
     }
 
-    public void dumpDown () {
+    public void dumpDown() {
         dump.setPosition(DUMP_DOWN);
     }
 
@@ -330,23 +328,31 @@ public class Lift extends Subsystem{
         return !asynch && Arrays.asList(LiftMode.RUN_TO_POSITION, LiftMode.LOWERING, LiftMode.FIND_LATCH).contains(liftMode);
     }
 
-    public boolean isSensor () {
+    public boolean isSensor() {
         return liftSensor.getState();
     }
 
-    public void findLatch () {
+    public void findLatch() {
         findLatchOnCompletion = true;
         goToPosition(LIFT_FIND_LATCH_START);
     }
 
-    public void releaseMarker () {
+    public void releaseMarker() {
         markerUp();
         robot.pause(1000);
         markerDown();
     }
 
-    public void setAsynch (boolean asynch) {
+    public void setAsynch(boolean asynch) {
         this.asynch = asynch;
+    }
+
+    public double getOffset() {
+        return offset;
+    }
+
+    public void setOffset(double offset) {
+        this.offset = offset;
     }
 }
 

@@ -3,7 +3,6 @@ package com.acmerobotics.roverruckus.trajectory;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roverruckus.opMode.auto.Auto;
 import com.acmerobotics.roverruckus.opMode.auto.AutoFlag;
 
 import java.util.ArrayList;
@@ -27,14 +26,18 @@ public abstract class Trajectory {
         flags.add(flag);
     }
 
-    public boolean containsFlag (AutoFlag flag) {
+    public boolean containsFlag(AutoFlag flag) {
         return flags.contains(flag);
     }
 
-    public abstract Pose2d update (double t, Pose2d pose, TelemetryPacket packet);
-    public abstract Pose2d getPose (double t);
-    public abstract double getV (double t);
-    public abstract double duration ();
-    public abstract boolean isComplete ();
+    public abstract Pose2d update(double t, Pose2d pose, TelemetryPacket packet);
+
+    public abstract Pose2d getPose(double t);
+
+    public abstract double getV(double t);
+
+    public abstract double duration();
+
+    public abstract boolean isComplete();
 
 }

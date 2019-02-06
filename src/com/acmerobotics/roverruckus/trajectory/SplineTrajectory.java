@@ -1,6 +1,5 @@
 package com.acmerobotics.roverruckus.trajectory;
 
-import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
@@ -24,7 +23,7 @@ public class SplineTrajectory extends Trajectory {
     private double error = 0, axialError = 0, lateralError = 0, averageHeadingError = 0;
 
     public SplineTrajectory(Path path) {
-        this (path, 0, false);
+        this(path, 0, false);
     }
 
     public SplineTrajectory(Path path, double startAccelerate, boolean stopAccelerate) {

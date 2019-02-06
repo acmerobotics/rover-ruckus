@@ -3,7 +3,6 @@ package com.acmerobotics.roverruckus.robot;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.robotcore.hardware.ColorSensor;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -51,7 +50,7 @@ public class Placer extends Subsystem {
         UNKNOWN
     }
 
-    public Placer (HardwareMap map) {
+    public Placer(HardwareMap map) {
         this.frontColor = map.colorSensor.get("frontSensor");
         this.backColor = map.colorSensor.get("backSensor");
         this.frontDistance = map.get(DistanceSensor.class, "frontSensor");
@@ -115,19 +114,20 @@ public class Placer extends Subsystem {
 //        }
 
 
-        if ((back != Mineral.NONE || front != Mineral.NONE) && intaking) gateServo.setPosition(gateClose);
+        if ((back != Mineral.NONE || front != Mineral.NONE) && intaking)
+            gateServo.setPosition(gateClose);
 
 
     }
 
-    private Mineral getMineral (ColorSensor sensor, DistanceSensor distanceSensor) {
+    private Mineral getMineral(ColorSensor sensor, DistanceSensor distanceSensor) {
         if (distanceSensor.getDistance(DistanceUnit.CM) > distanceThreshold) return Mineral.NONE;
         double ratio = ((double) sensor.red()) / ((double) sensor.blue() + .0001);
         if (ratio < colorThreshold) return Mineral.SILVER;
         return Mineral.GOLD;
     }
 
-    public void releaseFirst () {
+    public void releaseFirst() {
         firstOut = true;
         enabled = true;
     }

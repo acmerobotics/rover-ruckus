@@ -5,9 +5,6 @@ import android.util.Log;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.Vector2d;
-import com.acmerobotics.roadrunner.path.PathBuilder;
-import com.acmerobotics.roadrunner.path.heading.ConstantInterpolator;
 import com.acmerobotics.roverruckus.robot.Robot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -15,9 +12,9 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import java.io.File;
 import java.io.FileWriter;
 
-@Autonomous(name="fftuning")
+@Autonomous(name = "fftuning")
 @Config
-public class FFTuning extends LinearOpMode{
+public class FFTuning extends LinearOpMode {
 
     public static double ACCELERATION = 15.0;
     public static double F = 12.759;
@@ -28,7 +25,7 @@ public class FFTuning extends LinearOpMode{
     private Robot robot;
 
     @Override
-    public void runOpMode()  {
+    public void runOpMode() {
         robot = new Robot(this, hardwareMap);
         double f = robot.drive.getMotorPIDF().f;
         robot.addTelemetry("f", f);

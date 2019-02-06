@@ -9,7 +9,7 @@ public class CachingServo implements Servo, CachingMotor {
     private double cachedPosition = 0;
     private boolean needsUpdate = false;
 
-    public CachingServo (Servo delegate) {
+    public CachingServo(Servo delegate) {
         this.delegate = delegate;
     }
 

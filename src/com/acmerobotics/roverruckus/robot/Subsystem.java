@@ -4,14 +4,14 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 
 public abstract class Subsystem {
 
-    abstract void update (TelemetryPacket packet) ;
+    abstract void update(TelemetryPacket packet);
 
-    public boolean isBusy () {
+    public boolean isBusy() {
         return false;
     }
 
     public void waitForCompleteion() {
-        for (;;) {
+        for (; ; ) {
             if (!isBusy()) return;
             try {
                 Thread.sleep(50);

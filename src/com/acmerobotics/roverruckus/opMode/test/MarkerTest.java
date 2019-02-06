@@ -4,10 +4,10 @@ import com.acmerobotics.roverruckus.robot.Robot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-@TeleOp(name="markerTest")
+@TeleOp(name = "markerTest")
 public class MarkerTest extends LinearOpMode {
-    public void runOpMode () {
-        Robot robot = new Robot (this, hardwareMap);
+    public void runOpMode() {
+        Robot robot = new Robot(this, hardwareMap);
 
         waitForStart();
 

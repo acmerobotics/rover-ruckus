@@ -13,13 +13,13 @@ public class TrajectoryBuilder {
     private PathBuilder currentPath;
     private boolean added = false;
 
-    public TrajectoryBuilder (Waypoint start) {
+    public TrajectoryBuilder(Waypoint start) {
         lastWaypoint = start;
         trajectories = new SuperArrayList<>();
         currentPath = new PathBuilder(lastWaypoint.getExit());
     }
 
-    public TrajectoryBuilder to (Waypoint waypoint) {
+    public TrajectoryBuilder to(Waypoint waypoint) {
 
         currentPath.splineTo(waypoint.getEnter(), new GoodLinearInterpolator(lastWaypoint.getHeading(), waypoint.getHeading()));
         added = true;
@@ -29,7 +29,7 @@ public class TrajectoryBuilder {
 
     }
 
-    public TrajectoryBuilder turnTo (double heading) {
+    public TrajectoryBuilder turnTo(double heading) {
         PointTurnTrajectory trajectory = new PointTurnTrajectory(lastWaypoint.pos(), heading);
         lastWaypoint = new Waypoint(new Pose2d(lastWaypoint.pos().pos(), heading), lastWaypoint.getExit().getHeading());
         newPath();
@@ -38,7 +38,7 @@ public class TrajectoryBuilder {
 
     }
 
-    public TrajectoryBuilder partialTurnTo (Waypoint waypoint) {
+    public TrajectoryBuilder partialTurnTo(Waypoint waypoint) {
         newPath();
         PathBuilder path = new PathBuilder(lastWaypoint.getExit());
         path.splineTo(waypoint.getEnter(), new ConstantInterpolator(lastWaypoint.getHeading()));
@@ -46,19 +46,19 @@ public class TrajectoryBuilder {
         return this;
     }
 
-    private void newPath () {
+    private void newPath() {
         if (added) trajectories.add(new SplineTrajectory(currentPath.build()));
         added = false;
         currentPath = new PathBuilder(lastWaypoint.getExit());
     }
 
-    public TrajectoryBuilder addFlag (AutoFlag flag) {
+    public TrajectoryBuilder addFlag(AutoFlag flag) {
         trajectories.get(-1).addFlag(flag);
         return this;
 
     }
 
-    public SuperArrayList<Trajectory> build () {
+    public SuperArrayList<Trajectory> build() {
         newPath();
         return trajectories;
     }

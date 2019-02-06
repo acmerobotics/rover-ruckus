@@ -4,12 +4,9 @@ import android.util.Log;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roadrunner.control.PIDFController;
 import com.acmerobotics.roadrunner.profile.MotionProfile;
 import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
-import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
-import com.acmerobotics.roverruckus.hardware.CachingServo;
 import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -23,13 +20,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
  * Created by Emma Sheffo on 11/16/2018.
  */
 @Config
-public class Intake extends Subsystem{
+public class Intake extends Subsystem {
     public static final String TAG = "intake";
     public static double RAKE_UP = .8;
     public static double RAKE_DOWN = .35;
     public static double WINCH_RADIUS = .5;
     public static double MAX_V = 30;
-    public static double MAX_A =30;
+    public static double MAX_A = 30;
     public static double MAX_J = 15;
     public static double P = -10;
     public static double I = 0;
@@ -51,7 +48,7 @@ public class Intake extends Subsystem{
 
     public Intake(Robot robot, HardwareMap map) {
 
-        rakeMotor =  map.get(DcMotorEx.class,"rakeMotor");
+        rakeMotor = map.get(DcMotorEx.class, "rakeMotor");
         rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
         rakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 //        setPosition(0);
@@ -68,7 +65,7 @@ public class Intake extends Subsystem{
 
     public void setArmPower(double power) {
         armPower = power;
-        driverControled = driverControled  || power > 0 ;
+        driverControled = driverControled || power > 0;
     }
 
     @Override
@@ -109,7 +106,7 @@ public class Intake extends Subsystem{
     private void goToPosition(double position) {
         armProfile = MotionProfileGenerator.generateSimpleMotionProfile(
                 new MotionState(getPosition(), 0, 0, 0),
-                new MotionState(position, 0 ,0 ,0 ),
+                new MotionState(position, 0, 0, 0),
                 MAX_V, MAX_A, MAX_J);
         driverControled = false;
 
@@ -118,11 +115,11 @@ public class Intake extends Subsystem{
 
     }
 
-    public double getPosition () {
-       return rakeMotor.getCurrentPosition() / rakeMotor.getMotorType().getTicksPerRev() * (2 * Math.PI * WINCH_RADIUS)  + offset;
+    public double getPosition() {
+        return rakeMotor.getCurrentPosition() / rakeMotor.getMotorType().getTicksPerRev() * (2 * Math.PI * WINCH_RADIUS) + offset;
     }
 
-    public void setPosition (double position) {
+    public void setPosition(double position) {
         offset = -(getPosition() - offset + position);
     }
 
@@ -146,13 +143,12 @@ public class Intake extends Subsystem{
     public void toggleRake() {
         if (rakeDown) {
             rakeUp();
-        }
-        else {
+        } else {
             rakeDown();
         }
     }
 
-    public void retractRake () {
+    public void retractRake() {
         rakeUp();
         goToPosition(RAKE_RETRACT_DISTANCE);
     }
@@ -160,6 +156,14 @@ public class Intake extends Subsystem{
     @Override
     public boolean isBusy() {
         return !profileComplete;
+    }
+
+    public double getOffset() {
+        return offset;
+    }
+
+    public void setOffset(double offset) {
+        this.offset = offset;
     }
 
 

@@ -9,6 +9,7 @@ public class SharpGP2Y0A51SK0FProximitySensor implements HardwareDevice, Caching
     private boolean enabled = true;
     private boolean updated = false;
     private double voltage = 0;
+
     @Override
     public synchronized void setEnabled(boolean enabled) {
         this.enabled = enabled;

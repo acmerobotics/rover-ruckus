@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roverruckus.robot.Robot;
+import com.acmerobotics.roverruckus.robot.RobotState;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.vision.GoldLocation;
 import com.acmerobotics.roverruckus.vision.SamplingVision;
@@ -11,12 +12,11 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcontroller.internal.CameraFrameGrabber;
-import org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation;
 
 import java.util.ArrayList;
 
 @Config
-@Autonomous(name="Auto")
+@Autonomous(name = "Auto")
 public class Auto extends LinearOpMode {
 
     public static final String TAG = "autonomous";
@@ -25,6 +25,7 @@ public class Auto extends LinearOpMode {
     public void runOpMode() {
         Robot robot = new Robot(this, hardwareMap);
         SamplingVision.enable();
+        RobotState state = new RobotState(hardwareMap.appContext);
 
         waitForStart();
 
@@ -44,7 +45,7 @@ public class Auto extends LinearOpMode {
         }
         robot.drive.setCurrentEstimatedPose(autoPaths.start().pos());
 
-        for (Trajectory trajectory: trajectories) {
+        for (Trajectory trajectory : trajectories) {
             robot.drive.followTrajectory(trajectory);
             robot.waitForAllSubsystems();
 
@@ -63,6 +64,9 @@ public class Auto extends LinearOpMode {
         robot.intake.setIntakePower(1);
         robot.pause(1000);
         robot.intake.setIntakePower(0);
+
+        state.setLiftOffset(robot.lift.getOffset());
+        state.setRakeOffset(robot.intake.getOffset());
 
     }
 

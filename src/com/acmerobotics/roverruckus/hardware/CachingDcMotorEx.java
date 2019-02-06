@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigu
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-public class CachingDcMotorEx implements DcMotorEx, CachingMotor{
+public class CachingDcMotorEx implements DcMotorEx, CachingMotor {
 
     private Robot robot;
     private DcMotorEx delegate;
@@ -20,7 +20,7 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor{
     private boolean needsVelocityUpdate = false;
     private AngleUnit angleUnit = AngleUnit.RADIANS;
 
-    public CachingDcMotorEx (Robot robot, DcMotorEx delegate, int hub) {
+    public CachingDcMotorEx(Robot robot, DcMotorEx delegate, int hub) {
         this.robot = robot;
         this.delegate = delegate;
         this.hub = hub;

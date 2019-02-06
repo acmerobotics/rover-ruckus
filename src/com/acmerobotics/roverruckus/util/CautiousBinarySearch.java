@@ -5,7 +5,7 @@ public class CautiousBinarySearch {
     private double lower, upper, k;
 
     public CautiousBinarySearch(double lower, double upper) {
-        this (lower, upper, 0.5);
+        this(lower, upper, 0.5);
     }
 
     public CautiousBinarySearch(double lower, double upper, double k) {

@@ -10,7 +10,7 @@ import com.acmerobotics.roadrunner.util.Angle;
 import com.acmerobotics.roverruckus.robot.MecanumDrive;
 import com.acmerobotics.roverruckus.util.PIDController;
 
-public class PointTurnTrajectory extends Trajectory{
+public class PointTurnTrajectory extends Trajectory {
 
     private Pose2d start;
     private MotionProfile profile;
@@ -18,14 +18,14 @@ public class PointTurnTrajectory extends Trajectory{
     private boolean complete;
     private PIDController headingController, trackingController;
 
-    public PointTurnTrajectory (Pose2d start, double targetAngle) {
+    public PointTurnTrajectory(Pose2d start, double targetAngle) {
         this.start = start;
         System.out.println(start.getHeading());
-        double turnAngle = Angle.norm (targetAngle - start.getHeading());
+        double turnAngle = Angle.norm(targetAngle - start.getHeading());
         System.out.println(turnAngle);
         profile = MotionProfileGenerator.generateSimpleMotionProfile(
                 new MotionState(0, 0, 0, 0),
-                new MotionState(turnAngle, 0,0,0),
+                new MotionState(turnAngle, 0, 0, 0),
                 MecanumDrive.headingMaxV,
                 MecanumDrive.headingMaxA,
                 MecanumDrive.headingMaxJ
