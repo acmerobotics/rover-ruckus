@@ -62,25 +62,25 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         telemetryLines = new ArrayList<>();
         config = new OpModeConfiguration(map.appContext);
 
-//        try {
+        try {
         drive = new MecanumDrive(this, map);
         subsystems.add(drive);
-//        } catch (Exception e) {
-//            telemetryLines.add("problem with drive");
-//        }
-//        try {
+        } catch (Exception e) {
+            telemetryLines.add("problem with drive");
+        }
+        try {
         intake = new Intake(this, map);
         subsystems.add(intake);
-//        } catch (Exception e) {
-//            telemetryLines.add("problem with intake");
-//
-//        }
-//        try {
+        } catch (Exception e) {
+            telemetryLines.add("problem with intake");
+
+        }
+        try {
         lift = new Lift(this, map);
         subsystems.add(lift);
-//        } catch (Exception e) {
-//            telemetryLines.add("problem with lift");
-//        }
+        } catch (Exception e) {
+            telemetryLines.add("problem with lift");
+        }
 //        try {
 //            placer = new Placer(map);
 //            subsystems.add(placer);

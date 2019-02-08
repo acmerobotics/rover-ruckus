@@ -2,6 +2,7 @@ package com.acmerobotics.roverruckus.opMode.auto;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roverruckus.trajectory.Waypoint;
@@ -36,12 +37,12 @@ public class AutoPaths {
             PI / 6),
             PI / 2, PI / 4);
 
-    private static final Waypoint MARKER_CRATER = new Waypoint(new Pose2d(60, 48, 0), PI / 2, -PI / 2);
-    private static final Waypoint MARKER_DEPOT = new Waypoint(new Pose2d(48, 60, -PI / 2), PI / 2, PI);
+    private static final Waypoint MARKER_CRATER = new Waypoint(new Pose2d(58, 48, 0), PI / 2, -PI / 2);
+    private static final Waypoint MARKER_DEPOT = new Waypoint(new Pose2d(48, 64, -PI / 2), PI / 2, PI);
     private static final Waypoint MARKER_DEPOT_LEFT = new Waypoint(new Pose2d(48, 60, -PI / 2), 0, PI);
 
-    private static final Waypoint PARK_CRATER = new Waypoint(new Pose2d(63, -12, -PI / 2), -PI / 2);
-    private static final Waypoint PARK_DEPOT = new Waypoint(new Pose2d(-10, 65, -PI), -PI);
+    private static final Waypoint PARK_CRATER = new Waypoint(new Pose2d(62, -15, -PI / 2),-PI/2);
+    private static final Waypoint PARK_DEPOT = new Waypoint(new Pose2d(-8, 68, -PI), -PI);
 
     private static final Waypoint SAMPLE_LEFT_CRATER = new Waypoint(new Pose2d(36 + SAMPLE_DIST, -(12 + SAMPLE_DIST), PI / 4), -PI / 4, PI / 4);
     private static final Waypoint SAMPLE_CENTER_CRATER = new Waypoint(new Pose2d(24 + SAMPLE_DIST, -(24 + SAMPLE_DIST), PI / 4), -PI / 4, 3 * PI / 4);
@@ -55,8 +56,8 @@ public class AutoPaths {
     private static final Waypoint SAMPLE_CENTER_DEPOT = new Waypoint(new Pose2d(36, 36, -PI / 4), PI / 3);
     private static final Waypoint SAMPLE_RIGHT_DEPOT = new Waypoint(new Pose2d(48, 24, -PI / 4), PI / 4);
 
-    private static final Waypoint CLEAR_ONE_CRATER = new Waypoint(new Pose2d(36, -12, PI / 4), PI / 4);
-    private static final Waypoint CLEAR_TWO_CRATER = new Waypoint(new Pose2d(60, 12, 0), PI / 2);
+    private static final Waypoint CLEAR_ONE_CRATER = new Waypoint(new Pose2d(36, -16, PI / 4), PI / 5);
+    private static final Waypoint CLEAR_TWO_CRATER = new Waypoint(new Pose2d(48, 0, 0), PI/4);
 
     private GoldLocation location;
     private StartLocation start;
@@ -75,7 +76,7 @@ public class AutoPaths {
     public AutoPaths(GoldLocation location, StartLocation start, boolean sampleBoth) {
         this.location = location;
         this.start = start;
-        this.sampleBoth = sampleBoth && start == StartLocation.CRATER;
+        this.sampleBoth = (sampleBoth || location == GoldLocation.RIGHT) && start == StartLocation.CRATER;
 
         clearOne = CLEAR_ONE_CRATER;
         clearTwo = CLEAR_TWO_CRATER;
@@ -120,12 +121,12 @@ public class AutoPaths {
             firstDepot = new Waypoint(depot.pos(), depot.getEnter().getHeading(), location == GoldLocation.RIGHT ? -PI / 2 : PI);
             depot = new Waypoint(depot.pos(), 0, depot.getExit().getHeading());
             if (location == GoldLocation.RIGHT)
-                clearTwo = new Waypoint(SAMPLE_RIGHT_DEPOT.pos(), PI / 2);
+                clearTwo = new Waypoint(new Pose2d(SAMPLE_RIGHT_DEPOT.pos().pos().plus(new Vector2d(6, -6)), 0), PI/2);
         }
 
     }
 
-    public ArrayList<Trajectory> paths() {
+   public ArrayList<Trajectory> paths() {
         TrajectoryBuilder builder = new TrajectoryBuilder(startPosition)
                 .to(release)
                 .addFlag(AutoFlag.LOWER_LIFT)
@@ -141,6 +142,9 @@ public class AutoPaths {
                     .to(sampleSecond);
 
         builder.to(depot);
+
+        if (start == StartLocation.CRATER)
+            builder.turnTo(-PI/3);
 
         builder
                 .addFlag(AutoFlag.RELEASE_MARKER)

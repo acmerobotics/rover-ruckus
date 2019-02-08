@@ -46,11 +46,11 @@ public class Lift extends Subsystem {
     public static double RATCHET_DISENGAGE = .85;
     public static double MARKER_UP = .6;
     public static double MARKER_DOWN = .3;
-    public static double LIFT_LATCH = 15.5;
-    public static double LIFT_SCORE = 23;
-    public static double LIFT_MAX = 23;
+    public static double LIFT_LATCH = 14.5;
+    public static double LIFT_SCORE = 20.5;
+    public static double LIFT_MAX = 20.5;
     public static double LIFT_E_DUMP = 9;
-    public static double LIFT_FIND_LATCH_START = 12;
+    public static double LIFT_FIND_LATCH_START = 11;
     public static double LIFT_CLEARANCE = 10.25;
     public static double LIFT_DOWN = 1;
 
@@ -147,6 +147,9 @@ public class Lift extends Subsystem {
                 if (!gateArmClosed && getPosition() > LIFT_LATCH) {
                     placer.closeArm();
                     gateArmClosed = true;
+                }
+                else if (getPosition() < LIFT_LATCH) {
+                    placer.openArm();
                 }
                 if (t > profile.duration()) {
                     packet.put("complete", true);
@@ -295,6 +298,7 @@ public class Lift extends Subsystem {
     public void liftBottom() {
         goToPosition(LIFT_DOWN);
         setDumpOnCompletion(DUMP_DOWN);
+        placer.reset();
         openGateOnCompletion = true;
     }
 

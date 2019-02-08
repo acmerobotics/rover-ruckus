@@ -22,6 +22,7 @@ public class TeleOp extends LinearOpMode {
         stickyGamepad2 = new StickyGamepad(gamepad2);
         transform = new JoystickTransform();
         robot.lift.placer.setEnabled(false);
+        robot.lift.setAsynch(false);
 
         RobotState state = new RobotState(hardwareMap.appContext);
         robot.lift.setOffset(state.getLiftOffset());
@@ -34,6 +35,10 @@ public class TeleOp extends LinearOpMode {
             //drive
             Pose2d v = transform.transform(new Pose2d(-gamepad1.left_stick_x, -gamepad1.left_stick_y, -gamepad1.right_stick_x));
             robot.drive.setVelocity(v);
+            if (gamepad1.left_stick_button && gamepad1.right_stick_button) {
+                robot.lift.setPosition(0);
+                robot.intake.setPosition(0);
+            }
 
             //lift
             //ratchet
@@ -41,11 +46,11 @@ public class TeleOp extends LinearOpMode {
                 robot.lift.engageRatchet();
             if (gamepad2.left_bumper)
                 robot.lift.setVelocity(-1);
+            else if (Math.abs(gamepad2.left_stick_y) > .1 || !robot.lift.isBusy())
+                robot.lift.setVelocity(-gamepad2.left_stick_y);
             if (gamepad2.right_bumper) robot.lift.disengageRatchet();
 
                 //lift speed
-            else if (Math.abs(gamepad2.left_stick_y) > .1 || !robot.lift.isBusy())
-                robot.lift.setVelocity(-gamepad2.left_stick_y);
 
             //lift positions
             if (gamepad2.dpad_up) {

@@ -1,5 +1,6 @@
 package com.acmerobotics.roverruckus.opMode.auto;
 
+import android.media.MediaPlayer;
 import android.util.Log;
 
 import com.acmerobotics.dashboard.config.Config;
@@ -12,6 +13,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcontroller.internal.CameraFrameGrabber;
+import org.firstinspires.ftc.teamcode.R;
 
 import java.util.ArrayList;
 
@@ -23,7 +25,17 @@ public class Auto extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+
         Robot robot = new Robot(this, hardwareMap);
+
+        MediaPlayer media = null;
+        try {
+            if (robot.config.getPlayMusic())
+                media = MediaPlayer.create(hardwareMap.appContext, R.raw.tokyo_drift);
+        } catch (Exception e) {
+            Log.e(TAG, "error playing media: " + e.getMessage());
+        }
+
         SamplingVision.enable();
         RobotState state = new RobotState(hardwareMap.appContext);
 
@@ -36,6 +48,7 @@ public class Auto extends LinearOpMode {
         AutoPaths autoPaths = new AutoPaths(location, robot.config.getStartLocation(), robot.config.getSampleBoth());
         ArrayList<Trajectory> trajectories = autoPaths.paths();
 
+        if (media != null) media.start();
 
         //lower
         if (robot.config.getLatched()) {
@@ -55,7 +68,7 @@ public class Auto extends LinearOpMode {
 
             if (trajectory.containsFlag(AutoFlag.LOWER_LIFT)) {
                 robot.lift.setAsynch(true);
-                robot.lift.lower();
+                robot.lift.liftBottom();
             }
         }
 
@@ -67,6 +80,12 @@ public class Auto extends LinearOpMode {
 
         state.setLiftOffset(robot.lift.getOffset());
         state.setRakeOffset(robot.intake.getOffset());
+
+        if (media != null) {
+            media.stop();
+            media.release();
+        }
+
 
     }
 

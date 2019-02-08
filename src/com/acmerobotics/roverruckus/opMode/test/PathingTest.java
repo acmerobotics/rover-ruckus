@@ -15,7 +15,7 @@ public class PathingTest extends LinearOpMode {
     public void runOpMode() {
         Robot robot = new Robot(this, hardwareMap);
         SoundPool pool = new SoundPool.Builder().build();
-        int id = pool.load("/sdcard/tokyoDrift.mp3", 1);
+        int id = pool.load("/sdcard/tokyo_drift.mp33", 1);
         waitForStart();
         id = pool.play(id, 1, 1, 1, 0, 1);
 

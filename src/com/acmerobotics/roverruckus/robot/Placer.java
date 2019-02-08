@@ -63,7 +63,7 @@ public class Placer extends Subsystem {
 //        this.intakeMotor = map.dcMotor.get("intakeMotor");
 
 
-        armServo.setPosition(armClose);
+        armServo.setPosition(armOpen);
         gateServo.setPosition(gateOpen);
 
     }
@@ -181,6 +181,9 @@ public class Placer extends Subsystem {
 
     public void openIntake() {
         intakeServo.setPosition(intakeOpen);
+    }
+    public void openArm () {
+        armServo.setPosition(armOpen);
     }
 
 //    public void setIntakePower(double power) {
