@@ -3,6 +3,7 @@ package com.acmerobotics.roverruckus.trajectory;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.path.Path;
 import com.acmerobotics.roverruckus.opMode.auto.AutoFlag;
 
 import java.util.ArrayList;
@@ -39,5 +40,7 @@ public abstract class Trajectory {
     public abstract double duration();
 
     public abstract boolean isComplete();
+
+    public abstract Path getPath();
 
 }

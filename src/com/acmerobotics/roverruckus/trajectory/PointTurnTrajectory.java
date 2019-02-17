@@ -3,6 +3,7 @@ package com.acmerobotics.roverruckus.trajectory;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
+import com.acmerobotics.roadrunner.path.Path;
 import com.acmerobotics.roadrunner.profile.MotionProfile;
 import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
@@ -73,5 +74,10 @@ public class PointTurnTrajectory extends Trajectory {
     @Override
     public boolean isComplete() {
         return complete;
+    }
+
+    @Override
+    public Path getPath() {
+        return null;
     }
 }

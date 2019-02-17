@@ -144,4 +144,8 @@ public class SplineTrajectory extends Trajectory {
         return axialProfile.duration();
     }
 
+    @Override
+    public com.acmerobotics.roadrunner.path.Path getPath() {
+        return path;
+    }
 }

@@ -148,6 +148,8 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
             }
         }
 
+        telemetry.put("hubs updated", updated);
+
         TelemetryPacket packet = new TelemetryPacket();
         packet.addTimestamp();
         for (Subsystem subsystem : subsystems) {
