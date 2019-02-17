@@ -1,11 +1,7 @@
 package com.acmerobotics.roverruckus.util;
 
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.Vector2d;
-import com.acmerobotics.roverruckus.robot.Robot;
-import com.qualcomm.robotcore.util.Range;
 
 @Config
 public class JoystickTransform {
@@ -19,6 +15,7 @@ public class JoystickTransform {
     private long lastTime = 0;
 
     public MODE mode = MODE.LINEAR;
+
     public enum MODE {
         LINEAR,
         DUAL_ZONE,
@@ -29,19 +26,19 @@ public class JoystickTransform {
 
     }
 
-    public void setMode (MODE mode) {
+    public void setMode(MODE mode) {
         this.mode = mode;
     }
 
-    public MODE getMode () {
+    public MODE getMode() {
         return mode;
     }
 
-    public void setRamping (boolean enable) {
+    public void setRamping(boolean enable) {
         ramping = enable;
     }
 
-    public boolean getRamping () {
+    public boolean getRamping() {
         return ramping;
     }
 

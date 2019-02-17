@@ -1,34 +1,65 @@
 package com.acmerobotics.roverruckus.trajectory;
 
-import com.acmerobotics.roadrunner.path.Path;
+import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.path.PathBuilder;
+import com.acmerobotics.roadrunner.path.heading.ConstantInterpolator;
+import com.acmerobotics.roverruckus.opMode.auto.AutoFlag;
 import com.acmerobotics.roverruckus.util.SuperArrayList;
 
 public class TrajectoryBuilder {
 
     private Waypoint lastWaypoint;
-    private SuperArrayList<PathBuilder> paths;
+    private SuperArrayList<Trajectory> trajectories;
+    private PathBuilder currentPath;
+    private boolean added = false;
 
-    public TrajectoryBuilder (Waypoint start) {
+    public TrajectoryBuilder(Waypoint start) {
         lastWaypoint = start;
-        paths = new SuperArrayList<>();
-        paths.add(new PathBuilder(lastWaypoint.getExit()));
+        trajectories = new SuperArrayList<>();
+        currentPath = new PathBuilder(lastWaypoint.getExit());
     }
 
-    public TrajectoryBuilder to (Waypoint waypoint) {
+    public TrajectoryBuilder to(Waypoint waypoint) {
 
-        paths.get(-1).splineTo(waypoint.getEnter(), new GoodLinearInterpolator(lastWaypoint.getHeading(), waypoint.getHeading()));
-        if (waypoint.getStop()) paths.add(new PathBuilder(waypoint.getExit()));
+        currentPath.splineTo(waypoint.getEnter(), new GoodLinearInterpolator(lastWaypoint.getHeading(), waypoint.getHeading()));
+        added = true;
         lastWaypoint = waypoint;
+        if (waypoint.getStop()) newPath();
         return this;
 
     }
 
-    public SuperArrayList<Trajectory> build () {
-        SuperArrayList<Trajectory> trajectories = new SuperArrayList<>();
-        for (PathBuilder path: paths) {
-            trajectories.add(new Trajectory(path.build()));
-        }
+    public TrajectoryBuilder turnTo(double heading) {
+        PointTurnTrajectory trajectory = new PointTurnTrajectory(lastWaypoint.pos(), heading);
+        lastWaypoint = new Waypoint(new Pose2d(lastWaypoint.pos().pos(), heading), lastWaypoint.getExit().getHeading());
+        newPath();
+        trajectories.add(trajectory);
+        return this;
+
+    }
+
+    public TrajectoryBuilder partialTurnTo(Waypoint waypoint) {
+        newPath();
+        PathBuilder path = new PathBuilder(lastWaypoint.getExit());
+        path.splineTo(waypoint.getEnter(), new ConstantInterpolator(lastWaypoint.getHeading()));
+        trajectories.add(new PartialTurnSplineTrajectory(path.build(), waypoint.getHeading()));
+        return this;
+    }
+
+    private void newPath() {
+        if (added) trajectories.add(new SplineTrajectory(currentPath.build()));
+        added = false;
+        currentPath = new PathBuilder(lastWaypoint.getExit());
+    }
+
+    public TrajectoryBuilder addFlag(AutoFlag flag) {
+        trajectories.get(-1).addFlag(flag);
+        return this;
+
+    }
+
+    public SuperArrayList<Trajectory> build() {
+        newPath();
         return trajectories;
     }
 }

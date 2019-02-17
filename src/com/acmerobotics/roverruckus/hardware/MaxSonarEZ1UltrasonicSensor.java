@@ -49,7 +49,7 @@ public class MaxSonarEZ1UltrasonicSensor implements UltrasonicSensor, DistanceSe
 
     @Override
     public double getDistance(DistanceUnit unit) {
-        synchronized(this) {
+        synchronized (this) {
             return unit.fromInches(getUltrasonicLevel());
         }
     }

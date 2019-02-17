@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcontroller.internal.CameraFrameGrabber;
 
-@Autonomous(name="vision test")
+@Autonomous(name = "vision test")
 public class VisionTest extends LinearOpMode {
     @Override
     public void runOpMode() {

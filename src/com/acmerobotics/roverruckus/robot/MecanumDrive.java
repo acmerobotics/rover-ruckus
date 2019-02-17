@@ -22,7 +22,6 @@ import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.util.Range;
 
-
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
@@ -30,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Config
-public class MecanumDrive extends Subsystem{
+public class MecanumDrive extends Subsystem {
 
     public static double P = 10;
     public static double I = 4;
@@ -48,13 +47,13 @@ public class MecanumDrive extends Subsystem{
     };
 
     private static final Vector2d[] wheelPositions = {
-            new Vector2d(5.5,7.5),
+            new Vector2d(5.5, 7.5),
             new Vector2d(-5.5, 7.5),
-            new Vector2d(-5.5,-7.5),
+            new Vector2d(-5.5, -7.5),
             new Vector2d(5.5, -7.5)
     };
     private static final Vector2d[] rotorDirections = {
-            new Vector2d(1,-1),
+            new Vector2d(1, -1),
             new Vector2d(1, 1),
             new Vector2d(1, -1),
             new Vector2d(1, 1)
@@ -79,13 +78,13 @@ public class MecanumDrive extends Subsystem{
 
     private static final double trackeriTicksPerInch = (500 * 4) / (2 * trackerRadius * Math.PI);
 
-    public static double axialMaxV = 10;
-    public static double axialMaxA = 10;
-    public static double axialMaxJ = 10;
+    public static double axialMaxV = 30;
+    public static double axialMaxA = 30;
+    public static double axialMaxJ = 30;
 
-    public static double headingMaxV = 5;
-    public static double headingMaxA = 5;
-    public static double headingMaxJ = 5;
+    public static double headingMaxV = 3;
+    public static double headingMaxA = 3;
+    public static double headingMaxJ = 3;
 
     public static double HOLD_POSITION_P = 1;
     public static double HOLD_POSITION_I = 1;
@@ -95,7 +94,7 @@ public class MecanumDrive extends Subsystem{
     private PIDController holdPositionController;
     private PIDController holdPositionHeadingController;
 
-    private Pose2d targetVelocity = new Pose2d(0,0,0);
+    private Pose2d targetVelocity = new Pose2d(0, 0, 0);
     private Pose2d currentEstimatedPose = new Pose2d(0, 0, 0);
     private Pose2d currentEstimatedPoseTrackers = new Pose2d(0,0,0);
     private boolean estimatingPose = true;
@@ -171,11 +170,11 @@ public class MecanumDrive extends Subsystem{
 
     }
 
-    private void internalSetVelocity (Pose2d v) {
+    private void internalSetVelocity(Pose2d v) {
         for (int i = 0; i < motors.length; i++) {
             Vector2d rotorVelocity = new Vector2d(
-              v.getX() - v.getHeading() * wheelPositions[i].getY(),
-              v.getY() + v.getHeading() * wheelPositions[i].getX()
+                    v.getX() - v.getHeading() * wheelPositions[i].getY(),
+                    v.getY() + v.getHeading() * wheelPositions[i].getX()
             );
             double surfaceVelocity = rotorVelocity.dot(rotorDirections[i]);
             double wheelVelocity = surfaceVelocity / driveRadius;
@@ -188,8 +187,9 @@ public class MecanumDrive extends Subsystem{
      *
      * @param target Desired velocity of the robot, on [-1, 1], will be scaled to max V
      */
-    public void setVelocity (Pose2d target) {
-        if (currentMode == Mode.HOLD_POSITION && target.getY() == 0 && target.getX() == 0 && target.getHeading() == 0) return;
+    public void setVelocity(Pose2d target) {
+        if (currentMode == Mode.HOLD_POSITION && target.getY() == 0 && target.getX() == 0 && target.getHeading() == 0)
+            return;
         double v = target.pos().norm();
         v = Range.clip(v, -1, 1) * TELEOP_V;
         double theta = Math.atan2(target.getX(), target.getY());
@@ -210,7 +210,7 @@ public class MecanumDrive extends Subsystem{
         startTime = System.currentTimeMillis();
     }
 
-    public boolean isFollowingPath () {
+    public boolean isFollowingPath() {
         if (currentMode != Mode.FOLLOWING_PATH) return false;
         return !trajectory.isComplete();
     }
@@ -220,7 +220,7 @@ public class MecanumDrive extends Subsystem{
     }
 
     public void stop() {
-        targetVelocity = new Pose2d(0,0,0);
+        targetVelocity = new Pose2d(0, 0, 0);
         currentMode = Mode.OPEN_LOOP;
     }
 
@@ -276,7 +276,7 @@ public class MecanumDrive extends Subsystem{
         List<Double> wheelVelocities = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
             double pos = robot.getEncoderPosition(motors[i]);
-            double distance = ((pos - lastWheelPositions[i])/motors[i].getMotorType().getTicksPerRev()) * (Math.PI * 4);
+            double distance = ((pos - lastWheelPositions[i]) / motors[i].getMotorType().getTicksPerRev()) * (Math.PI * 4);
             wheelVelocities.add(distance);
             lastWheelPositions[i] = pos;
         }
@@ -293,18 +293,18 @@ public class MecanumDrive extends Subsystem{
     }
 
     public void setMotorPIDF(double p, double i, double d, double f) {
-        for (DcMotorEx motor: motors) motor.setVelocityPIDFCoefficients(p, i, d, f);
+        for (DcMotorEx motor : motors) motor.setVelocityPIDFCoefficients(p, i, d, f);
     }
 
     public void setMotorPIDFCoefficients(DcMotor.RunMode mode, PIDFCoefficients coefficients) {
-        for (DcMotorEx motor: motors) motor.setPIDFCoefficients(mode, coefficients);
+        for (DcMotorEx motor : motors) motor.setPIDFCoefficients(mode, coefficients);
     }
 
     public PIDFCoefficients getMotorPIDF() {
         return motors[0].getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
-    public static void drawPose (Canvas overlay, Pose2d pose, String color) {
+    public static void drawPose(Canvas overlay, Pose2d pose, String color) {
         overlay.setStroke(color);
         double sin = Math.sin(pose.getHeading()) * 9;
         double cos = Math.cos(pose.getHeading()) * 9;
@@ -324,29 +324,31 @@ public class MecanumDrive extends Subsystem{
 
     public double getVelocity() {
         double v = 0;
-        for (DcMotorEx motor: motors) {
+        for (DcMotorEx motor : motors) {
             v += motor.getVelocity(AngleUnit.RADIANS) * 2;
         }
         v /= motors.length;
         return v;
     }
 
-    public void holdPosition () {
+    public void holdPosition() {
         holdPositionController = new PIDController(HOLD_POSITION_P, HOLD_POSITION_I, 0);
         holdPositionHeadingController = new PIDController(HOLD_POSITION_HEADING_P, HOLD_POSITION_HEADING_I, 0);
-        setCurrentEstimatedPose(new Pose2d(0,0,0));
+        setCurrentEstimatedPose(new Pose2d(0, 0, 0));
         currentMode = Mode.HOLD_POSITION;
         estimatingPose = true;
     }
 
     public void setFloatMotors(boolean floatMotors) {
-       if (floatMotors) {
-           for (DcMotorEx motor: motors) motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-           targetVelocity = new Pose2d();
-           currentMode = Mode.OPEN_LOOP;
-       } else {
-           for (DcMotorEx motor: motors) motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-       }
+        if (floatMotors) {
+            for (DcMotorEx motor : motors)
+                motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            targetVelocity = new Pose2d();
+            currentMode = Mode.OPEN_LOOP;
+        } else {
+            for (DcMotorEx motor : motors)
+                motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
     }
 
 

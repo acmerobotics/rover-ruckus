@@ -5,26 +5,14 @@ import android.util.Log;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roverruckus.hardware.CachingMotor;
-import com.acmerobotics.roverruckus.hardware.CachingSensor;
-import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.lynx.LynxModuleIntf;
-import com.qualcomm.hardware.lynx.LynxNackException;
-import com.qualcomm.hardware.lynx.commands.LynxMessage;
-import com.qualcomm.hardware.lynx.commands.core.LynxDekaInterfaceCommand;
 import com.qualcomm.hardware.lynx.commands.core.LynxGetBulkInputDataCommand;
 import com.qualcomm.hardware.lynx.commands.core.LynxGetBulkInputDataResponse;
-import com.qualcomm.hardware.lynx.commands.core.LynxGetMotorChannelCurrentAlertLevelCommand;
-import com.qualcomm.hardware.lynx.commands.core.LynxGetMotorChannelCurrentAlertLevelResponse;
-import com.qualcomm.hardware.lynx.commands.core.LynxI2cReadMultipleBytesCommand;
-import com.qualcomm.hardware.lynx.commands.core.LynxI2cWriteReadMultipleBytesCommand;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
-import com.qualcomm.robotcore.hardware.DcMotorControllerEx;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.GlobalWarningSource;
@@ -36,7 +24,6 @@ import org.firstinspires.ftc.robotcore.internal.opmode.OpModeManagerImpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -75,25 +62,25 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         telemetryLines = new ArrayList<>();
         config = new OpModeConfiguration(map.appContext);
 
-//        try {
-            drive = new MecanumDrive(this, map);
-            subsystems.add(drive);
-//        } catch (Exception e) {
-//            telemetryLines.add("problem with drive");
-//        }
-//        try {
-            intake = new Intake(this, map);
-            subsystems.add(intake);
-//        } catch (Exception e) {
-//            telemetryLines.add("problem with intake");
-//
-//        }
-//        try {
-            lift = new Lift(this, map);
-            subsystems.add(lift);
-//        } catch (Exception e) {
-//            telemetryLines.add("problem with lift");
-//        }
+        try {
+        drive = new MecanumDrive(this, map);
+        subsystems.add(drive);
+        } catch (Exception e) {
+            telemetryLines.add("problem with drive");
+        }
+        try {
+        intake = new Intake(this, map);
+        subsystems.add(intake);
+        } catch (Exception e) {
+            telemetryLines.add("problem with intake");
+
+        }
+        try {
+        lift = new Lift(this, map);
+        subsystems.add(lift);
+        } catch (Exception e) {
+            telemetryLines.add("problem with lift");
+        }
 //        try {
 //            placer = new Placer(map);
 //            subsystems.add(placer);
@@ -150,7 +137,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     }
 
     public void updateSubsystems() {
-        for (LynxModuleIntf hub: hubs.values()) {
+        for (LynxModuleIntf hub : hubs.values()) {
             LynxGetBulkInputDataCommand command = new LynxGetBulkInputDataCommand(hub);
             try {
                 responses.put(hub, command.sendReceive());
@@ -161,10 +148,12 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
             }
         }
 
+        telemetry.put("hubs updated", updated);
+
         TelemetryPacket packet = new TelemetryPacket();
         packet.addTimestamp();
-        for (Subsystem subsystem: subsystems) {
-                subsystem.update(packet);
+        for (Subsystem subsystem : subsystems) {
+            subsystem.update(packet);
         }
         synchronized (telemetry) {
             packet.putAll(telemetry);
@@ -291,7 +280,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     }
 
     public void waitForAllSubsystems() {
-        for (;;) {
+        for (; ; ) {
             update();
             boolean complete = true;
             telemetryLines.clear();
@@ -299,7 +288,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
                 if (subsystem.isBusy()) {
                     String string = subsystem.getClass().getCanonicalName() + " is busy";
                     if (!telemetryLines.contains(string))
-                    telemetryLines.add(subsystem.getClass().getSimpleName() + " is busy");
+                        telemetryLines.add(subsystem.getClass().getSimpleName() + " is busy");
                     complete = false;
                 }
             }
@@ -314,14 +303,10 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     }
 
 
-//    public void pause (long millis) {
-//        long start = System.currentTimeMillis();
-//
-// long remaining;
-//        while ((remaining = (millis - (System.currentTimeMillis() - start)) > 0) {
-//            try {
-//                Thread.sleep(end - System.currentTimeMillis());
-//            }
-//        }
-//    }
+    public void pause(long millis) {
+        long start = System.currentTimeMillis();
+        while (((millis + start) - System.currentTimeMillis()) > 0) {
+            update();
+        }
+    }
 }

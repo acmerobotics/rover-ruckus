@@ -1,21 +1,16 @@
 package com.acmerobotics.roverruckus.trajectory;
 
-import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.path.Path;
-import com.acmerobotics.roadrunner.profile.MotionProfile;
-import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
-import com.acmerobotics.roadrunner.profile.MotionState;
-import com.acmerobotics.roadrunner.util.Angle;
-import com.acmerobotics.roverruckus.robot.MecanumDrive;
-import com.acmerobotics.roverruckus.util.PIDController;
+import com.acmerobotics.roverruckus.opMode.auto.AutoFlag;
+
+import java.util.ArrayList;
 
 @Config
-public class Trajectory {
+public abstract class Trajectory {
+
     public static double AXIAL_P = 6;
     public static double AXIAL_I = 0;
     public static double AXIAL_D = 0;
@@ -26,129 +21,26 @@ public class Trajectory {
     public static double HEADING_I = 0;
     public static double HEADING_D = 0;
 
-    private Path path;
-    private MotionProfile axialProfile;
+    private ArrayList<AutoFlag> flags = new ArrayList<>();
 
-    private PIDController axialController, lateralController, headingController;
-
-    private double duration;
-    private boolean complete = false;
-    private double error = 0, axialError = 0, lateralError = 0, averageHeadingError = 0;
-
-    public Trajectory (Path path) {
-        this (path, 0, false);
+    public void addFlag(AutoFlag flag) {
+        flags.add(flag);
     }
 
-    public Trajectory (Path path, double startAccelerate, boolean stopAccelerate) {
-
-        this.path = path;
-        this.axialProfile = MotionProfileGenerator.generateSimpleMotionProfile(
-                new MotionState(0, 0, startAccelerate, 0),
-                new MotionState(path.length(), 0, stopAccelerate ? -MecanumDrive.axialMaxA : 0, 0),
-                MecanumDrive.axialMaxV,
-                MecanumDrive.axialMaxA,
-                MecanumDrive.axialMaxJ
-        );
-        duration = axialProfile.duration();
-
-        this.axialController = new PIDController(AXIAL_P, AXIAL_I, AXIAL_D);
-        this.lateralController = new PIDController(LATERAL_P, LATERAL_I, LATERAL_D);
-        this.headingController = new PIDController(HEADING_P, HEADING_I, HEADING_D);
-
+    public boolean containsFlag(AutoFlag flag) {
+        return flags.contains(flag);
     }
 
-    long lastupdate = 0;
+    public abstract Pose2d update(double t, Pose2d pose, TelemetryPacket packet);
 
-    public synchronized Pose2d update(double t, Pose2d pose, TelemetryPacket packet) {
-        if (t >= duration) complete = true;
-        Pose2d targetPose = path.get(axialProfile.get(t).getX());
-        double theta = Angle.norm(path.deriv(axialProfile.get(t).getX()).pos().angle());
+    public abstract Pose2d getPose(double t);
 
-        Pose2d targetVelocity = path.deriv(axialProfile.get(t).getX()).times(axialProfile.get(t).getV());
-        packet.fieldOverlay().setStroke("green");
-        packet.fieldOverlay().strokeLine(pose.getX(), pose.getY(), pose.getX() + targetVelocity.getX(), pose.getY() + targetVelocity.getY());
+    public abstract double getV(double t);
 
-        Vector2d trackingError = pose.pos().minus(targetPose.pos()).rotated(-theta);
-        packet.put("theta", theta);
+    public abstract double duration();
 
-        Vector2d trackingCorrection = new Vector2d(
-                axialController.update(trackingError.getX()),
-                lateralController.update(trackingError.getY())
-        );
-        trackingCorrection = trackingCorrection.rotated(theta);
-        packet.fieldOverlay().setStroke("pink");
-        packet.fieldOverlay().strokeLine(pose.getX(), pose.getY(), pose.getX() + trackingCorrection.getX(), pose.getY() + trackingCorrection.getY());
+    public abstract boolean isComplete();
 
-        double headingError = Angle.norm(pose.getHeading() - targetPose.getHeading());
-        double headingCorrection = headingController.update(headingError);
-
-        Pose2d correction = new Pose2d(trackingCorrection, headingCorrection);
-
-        MecanumDrive.drawPose(packet.fieldOverlay(), targetPose, "blue");
-
-        packet.fieldOverlay().setStroke("red");
-
-        packet.fieldOverlay().strokeLine(
-                targetPose.getX(), targetPose.getY(),
-                targetPose.getX() + trackingError.getX() * Math.cos(theta),
-                targetPose.getY() + trackingError.getX() * Math.sin(theta)
-        );
-
-        packet.fieldOverlay().setStroke("purple");
-
-        packet.fieldOverlay().strokeLine(
-                targetPose.getX(), targetPose.getY(),
-                targetPose.getX() + trackingError.getY() * -Math.sin(theta),
-                targetPose.getY() + trackingError.getY() * Math.cos(theta)
-        );
-
-        packet.put("displacement", axialProfile.get(t).getX());
-        packet.put("velocity", axialProfile.get(t).getV());
-        packet.put("acceleration", axialProfile.get(t).getA());
-
-
-        packet.put("axialError", trackingError.getX());
-        packet.put("lateralError", trackingError.getY());
-        packet.put("headingError", headingError);
-
-        if (lastupdate == 0) lastupdate = System.currentTimeMillis();
-        else {
-            long now = System.currentTimeMillis();
-            long dt = now - lastupdate;
-            lastupdate = now;
-            error += trackingError.norm() * dt;
-            axialError += trackingError.getX() * dt;
-            lateralError += trackingError.getY() * dt;
-            averageHeadingError += headingError * dt;
-        }
-
-        return targetVelocity.minus(correction);
-    }
-
-    public synchronized boolean isComplete() {
-        return complete;
-    }
-
-    public synchronized double averageError() {
-        return complete ? error / duration: 0;
-    }
-
-    public synchronized double avergeLateralError() {return complete ? lateralError / duration: 0;}
-
-    public synchronized double averageAxialError() {return complete ? axialError / duration: 0;}
-
-    public synchronized double averageHeadingError() {return complete ? averageHeadingError / duration: 0;}
-
-    public Pose2d poseAt(double t) {
-        return path.get(axialProfile.get(t).getX());
-    }
-
-    public double getV(double t) {
-        return axialProfile.get(t).getV();
-    }
-
-    public double duration() {
-        return axialProfile.duration();
-    }
+    public abstract Path getPath();
 
 }

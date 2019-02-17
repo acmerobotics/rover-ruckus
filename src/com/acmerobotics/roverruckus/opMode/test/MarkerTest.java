@@ -1,24 +1,22 @@
 package com.acmerobotics.roverruckus.opMode.test;
 
-import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roverruckus.robot.Robot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-@TeleOp(name = "rakeTest")
-@Config
-public class RakeTest extends LinearOpMode {
-
-
-    @Override
+@TeleOp(name = "markerTest")
+public class MarkerTest extends LinearOpMode {
     public void runOpMode() {
         Robot robot = new Robot(this, hardwareMap);
 
         waitForStart();
 
-        robot.intake.retractRake();
-        robot.waitForAllSubsystems();
-
-        while (opModeIsActive()) robot.update();
+        while (!isStopRequested()) {
+            if (gamepad1.a) robot.lift.markerDown();
+            else if (gamepad1.b) robot.lift.markerUp();
+            else if (gamepad1.x) {
+                robot.lift.releaseMarker();
+            }
+        }
     }
 }

@@ -168,7 +168,7 @@ public class PIDController {
 
     @Override
     public String toString() {
-        return String.format(Locale.ENGLISH,"(%4.3f, %4.3f, %4.3f)", coeff.p, coeff.i, coeff.d);
+        return String.format(Locale.ENGLISH, "(%4.3f, %4.3f, %4.3f)", coeff.p, coeff.i, coeff.d);
     }
 
 }

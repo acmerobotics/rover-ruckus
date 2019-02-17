@@ -9,19 +9,19 @@ public class SharpDistanceSensor {
     private static final double A = .3928;
     private static final double B = -1.66868;
 
-    public SharpDistanceSensor (AnalogInput input) {
+    public SharpDistanceSensor(AnalogInput input) {
         this.input = input;
     }
 
-    public double getRawVoltage () {
+    public double getRawVoltage() {
         return input.getVoltage();
     }
 
-    private double linearize (double v) {
+    private double linearize(double v) {
         return Range.clip(A * Math.pow(v, B), .1, 5.0);
     }
 
-    public double getUnscaledDistance () {
+    public double getUnscaledDistance() {
         return linearize(getRawVoltage());
     }
 }

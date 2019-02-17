@@ -58,7 +58,9 @@ public class VCNL4010ProximitySensor extends I2cDeviceSynchDeviceWithParameters<
     public static final byte bPROXIMITY_PERIODIC = 0x02;
     public static final byte bSELF_TIMED = 0x01;
 
-    /** proximity reads per sec */
+    /**
+     * proximity reads per sec
+     */
     public enum ProximityRate {
         RATE_1_95(0),
         RATE_3_90625(1),
@@ -70,12 +72,15 @@ public class VCNL4010ProximitySensor extends I2cDeviceSynchDeviceWithParameters<
         RATE_250(7);
 
         public final byte bVal;
+
         ProximityRate(int i) {
             this.bVal = (byte) i;
         }
     }
 
-    /** frequency of the IR test signal */
+    /**
+     * frequency of the IR test signal
+     */
     public enum Frequency {
         FREQ_390_625(0),
         FREQ_781_25(1),
@@ -83,6 +88,7 @@ public class VCNL4010ProximitySensor extends I2cDeviceSynchDeviceWithParameters<
         FREQ_3_125(3);
 
         public final byte bVal;
+
         Frequency(int i) {
             this.bVal = (byte) i;
         }
@@ -102,6 +108,7 @@ public class VCNL4010ProximitySensor extends I2cDeviceSynchDeviceWithParameters<
         MOD_TIMING(0x8F);
 
         public final byte bVal;
+
         Register(int i) {
             this.bVal = (byte) i;
         }

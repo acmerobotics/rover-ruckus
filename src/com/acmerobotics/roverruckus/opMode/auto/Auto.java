@@ -1,39 +1,43 @@
 package com.acmerobotics.roverruckus.opMode.auto;
 
+import android.media.MediaPlayer;
 import android.util.Log;
 
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.path.Path;
-import com.acmerobotics.roadrunner.path.PathBuilder;
-import com.acmerobotics.roverruckus.robot.Lift;
 import com.acmerobotics.roverruckus.robot.Robot;
+import com.acmerobotics.roverruckus.robot.RobotState;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
-import com.acmerobotics.roverruckus.trajectory.TrajectoryBuilder;
-import com.acmerobotics.roverruckus.trajectory.Waypoint;
 import com.acmerobotics.roverruckus.vision.GoldLocation;
 import com.acmerobotics.roverruckus.vision.SamplingVision;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcontroller.internal.CameraFrameGrabber;
-import org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation;
+import org.firstinspires.ftc.teamcode.R;
 
 import java.util.ArrayList;
 
 @Config
-@Autonomous(name="Auto")
+@Autonomous(name = "Auto")
 public class Auto extends LinearOpMode {
-
-    public static double RELEASE_X = 0;
-    public static double RELEASE_Y = 2;
 
     public static final String TAG = "autonomous";
 
     @Override
     public void runOpMode() {
+
         Robot robot = new Robot(this, hardwareMap);
+
+        MediaPlayer media = null;
+        try {
+            if (robot.config.getPlayMusic())
+                media = MediaPlayer.create(hardwareMap.appContext, R.raw.tokyo_drift);
+        } catch (Exception e) {
+            Log.e(TAG, "error playing media: " + e.getMessage());
+        }
+
         SamplingVision.enable();
+        RobotState state = new RobotState(hardwareMap.appContext);
 
         waitForStart();
 
@@ -41,9 +45,10 @@ public class Auto extends LinearOpMode {
         GoldLocation location = SamplingVision.getLocation();
         Log.i(TAG, location.toString());
         SamplingVision.disable();
-        AutoPaths autoPaths = new AutoPaths(location, robot.config.getStartLocation());
+        AutoPaths autoPaths = new AutoPaths(location, robot.config.getStartLocation(), robot.config.getSampleBoth());
         ArrayList<Trajectory> trajectories = autoPaths.paths();
 
+        if (media != null) media.start();
 
         //lower
         if (robot.config.getLatched()) {
@@ -53,36 +58,35 @@ public class Auto extends LinearOpMode {
         }
         robot.drive.setCurrentEstimatedPose(autoPaths.start().pos());
 
-//        Trajectory release = new TrajectoryBuilder(new Waypoint(robot.drive.getCurrentEstimatedPose(), -Math.PI / 2))
-//                .to(new Waypoint(new Pose2d(RELEASE_X, RELEASE_Y, -Math.PI/12), -Math.PI/4))
-//                .build().get(0);
-//        Log.i(TAG, "path duration: " + release.duration());
-//        robot.drive.followTrajectory(release);
-//        robot.waitForAllSubsystems();
-//        Log.i(TAG, "path complete");
-
-//        autoPaths = new AutoPaths(location, robot.config.getStartLocation(), robot.drive.getCurrentEstimatedPose());
-
-
-        for (int i = 0; i < trajectories.size(); i++) {
-            robot.drive.followTrajectory(trajectories.get(i));
+        for (Trajectory trajectory : trajectories) {
+            robot.drive.followTrajectory(trajectory);
             robot.waitForAllSubsystems();
-            if (i == 1 && robot.config.getStartLocation() == StartLocation.DEPOT) {
-                robot.lift.markerUp();
-                Log.e(TAG, "released marker");
+
+            if (trajectory.containsFlag(AutoFlag.RELEASE_MARKER)) {
+                robot.lift.releaseMarker();
             }
-            if (i == 2 && robot.config.getStartLocation() == StartLocation.CRATER) {
-                robot.lift.markerDown();
-                Log.e(TAG, "released marker");
+
+            if (trajectory.containsFlag(AutoFlag.LOWER_LIFT)) {
+                robot.lift.setAsynch(true);
+                robot.lift.liftBottom();
             }
         }
 
-//        robot.intake.retractRake();
-//        robot.waitForAllSubsystems();
-//        robot.intake.setIntakePower(1);
+        robot.intake.retractRake();
+        robot.waitForAllSubsystems();
+        robot.intake.setIntakePower(1);
+        robot.pause(1000);
+        robot.intake.setIntakePower(0);
 
-        while (opModeIsActive());
-//        robot.intake.setIntakePower(0);
+        state.setLiftOffset(robot.lift.getOffset());
+        state.setRakeOffset(robot.intake.getOffset());
+
+        if (media != null) {
+            media.stop();
+            media.release();
+        }
+
+
     }
 
 }
