@@ -7,7 +7,6 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.drive.Kinematics;
 import com.acmerobotics.roadrunner.drive.MecanumKinematics;
-import com.acmerobotics.roadrunner.path.Path;
 import com.acmerobotics.roverruckus.hardware.LynxOptimizedI2cFactory;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.util.PIDController;
@@ -17,6 +16,7 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
@@ -24,7 +24,7 @@ import com.qualcomm.robotcore.util.Range;
 
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.intellij.lang.annotations.JdkConstants;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,9 +46,7 @@ public class MecanumDrive extends Subsystem{
             "m2",
             "m3"
     };
-    private static final int[] hubs = {
-            0, 0, 0, 0
-    };
+
     private static final Vector2d[] wheelPositions = {
             new Vector2d(5.5,7.5),
             new Vector2d(-5.5, 7.5),
@@ -61,8 +59,25 @@ public class MecanumDrive extends Subsystem{
             new Vector2d(1, -1),
             new Vector2d(1, 1)
     };
-    private static final double radius = 2;
-//    private static final double ticksPerInch = (2240 * 4) / (radius * 2 * Math.PI);
+    private static final double driveRadius = 2;
+
+    private DcMotor[] trackers;
+    private double[] lastTrackerPosition = new double[4];
+    private static final String[] trackerNames = {
+            "liftMotor2",
+            "intakeMotor"
+    };
+    private static final Vector2d[] trackerPositions = {
+            new Vector2d(0, 0),
+            new Vector2d(10, 10)
+    };
+    private static final Vector2d[] trackerDirections = {
+            new Vector2d(1, 0),
+            new Vector2d(0, 1)
+    };
+    private static final double trackerRadius = DistanceUnit.INCH.fromMm(35 / 2);
+
+    private static final double trackeriTicksPerInch = (500 * 4) / (2 * trackerRadius * Math.PI);
 
     public static double axialMaxV = 10;
     public static double axialMaxA = 10;
@@ -82,6 +97,7 @@ public class MecanumDrive extends Subsystem{
 
     private Pose2d targetVelocity = new Pose2d(0,0,0);
     private Pose2d currentEstimatedPose = new Pose2d(0, 0, 0);
+    private Pose2d currentEstimatedPoseTrackers = new Pose2d(0,0,0);
     private boolean estimatingPose = true;
     private double[] lastWheelPositions = new double[4];
     private long lastUpdate = 0;
@@ -114,6 +130,11 @@ public class MecanumDrive extends Subsystem{
         motors[1].setDirection(DcMotorSimple.Direction.FORWARD);
         motors[2].setDirection(DcMotorSimple.Direction.REVERSE);
         motors[3].setDirection(DcMotorSimple.Direction.REVERSE);
+
+        trackers = new DcMotor[trackerNames.length];
+        for (int i = 0; i < trackerNames.length; i++) {
+            trackers[i] = hardwareMap.dcMotor.get(trackerNames[i]);
+        }
 
         I2cDeviceSynch imuI2cDevice = LynxOptimizedI2cFactory.createLynxI2cDeviceSynch(hardwareMap.get(LynxModule.class, "hub1"), 0);
         imuI2cDevice.setUserConfiguredName("imu");
@@ -157,7 +178,7 @@ public class MecanumDrive extends Subsystem{
               v.getY() + v.getHeading() * wheelPositions[i].getX()
             );
             double surfaceVelocity = rotorVelocity.dot(rotorDirections[i]);
-            double wheelVelocity = surfaceVelocity / radius;
+            double wheelVelocity = surfaceVelocity / driveRadius;
             motors[i].setVelocity(wheelVelocity, AngleUnit.RADIANS);
         }
     }
@@ -246,6 +267,9 @@ public class MecanumDrive extends Subsystem{
             for (int i = 0; i < 4; i++) {
                 lastWheelPositions[i] = motors[i].getCurrentPosition();
             }
+            for (int i = 0; i < 2; i++) {
+                lastTrackerPosition[i] = robot.getEncoderPosition(trackers[i]);
+            }
             return;
         }
 
@@ -259,8 +283,13 @@ public class MecanumDrive extends Subsystem{
         Pose2d v = MecanumKinematics.wheelToRobotVelocities(wheelVelocities, 16, 16);
         double currentHeadding = imu.getAngularOrientation().firstAngle;
         v = new Pose2d(v.pos(), currentHeadding - lastHeading);
+
         lastHeading = currentHeadding;
         currentEstimatedPose = Kinematics.relativeOdometryUpdate(currentEstimatedPose, v);
+    }
+
+    public Vector2d getTrackingPositions () {
+        return new Vector2d(robot.getEncoderPosition(trackers[0]), robot.getEncoderPosition(trackers[1]));
     }
 
     public void setMotorPIDF(double p, double i, double d, double f) {
