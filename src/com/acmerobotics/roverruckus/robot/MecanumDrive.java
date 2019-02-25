@@ -16,7 +16,6 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
@@ -61,22 +60,17 @@ public class MecanumDrive extends Subsystem {
     private static final double driveRadius = 2;
 
     private DcMotor[] trackers;
-    private double[] lastTrackerPosition = new double[4];
     private static final String[] trackerNames = {
             "liftMotor2",
             "intakeMotor"
     };
-    private static final Vector2d[] trackerPositions = {
-            new Vector2d(0, 0),
-            new Vector2d(10, 10)
-    };
-    private static final Vector2d[] trackerDirections = {
-            new Vector2d(1, 0),
-            new Vector2d(0, 1)
-    };
+
+    private static final Vector2d trackerCorrection = new Vector2d(3500, 0);
+    private static final double[] trackerAngles = {0, Math.PI / 2};
+
     private static final double trackerRadius = DistanceUnit.INCH.fromMm(35 / 2);
 
-    private static final double trackeriTicksPerInch = (500 * 4) / (2 * trackerRadius * Math.PI);
+    private static final double trackerTicksPerInch = (500 * 4) / (2 * trackerRadius * Math.PI);
 
     public static double axialMaxV = 30;
     public static double axialMaxA = 30;
@@ -97,6 +91,7 @@ public class MecanumDrive extends Subsystem {
     private Pose2d targetVelocity = new Pose2d(0, 0, 0);
     private Pose2d currentEstimatedPose = new Pose2d(0, 0, 0);
     private Pose2d currentEstimatedPoseTrackers = new Pose2d(0,0,0);
+    private Vector2d lastTrackerPositions = new Vector2d();
     private boolean estimatingPose = true;
     private double[] lastWheelPositions = new double[4];
     private long lastUpdate = 0;
@@ -171,6 +166,7 @@ public class MecanumDrive extends Subsystem {
     }
 
     private void internalSetVelocity(Pose2d v) {
+        robot.addTelemetry("command", v.toString());
         for (int i = 0; i < motors.length; i++) {
             Vector2d rotorVelocity = new Vector2d(
                     v.getX() - v.getHeading() * wheelPositions[i].getY(),
@@ -216,7 +212,7 @@ public class MecanumDrive extends Subsystem {
     }
 
     public Pose2d getCurrentEstimatedPose() {
-        return currentEstimatedPose;
+        return currentEstimatedPoseTrackers;
     }
 
     public void stop() {
@@ -230,6 +226,9 @@ public class MecanumDrive extends Subsystem {
         if (estimatingPose) {
             updatePoseEstimate();
             drawPose(packet.fieldOverlay(), currentEstimatedPose, "red");
+            drawPose(packet.fieldOverlay(), currentEstimatedPoseTrackers, "green");
+            packet.put("poseX", currentEstimatedPoseTrackers.getX());
+            packet.put("poseY", currentEstimatedPoseTrackers.getY());
         }
 
         switch (currentMode) {
@@ -241,7 +240,7 @@ public class MecanumDrive extends Subsystem {
                 break;
 
             case FOLLOWING_PATH:
-                internalSetVelocity(Kinematics.fieldToRobotPoseVelocity(currentEstimatedPose, trajectory.update((System.currentTimeMillis() - startTime) / 1000.0, currentEstimatedPose, packet)));
+                internalSetVelocity(Kinematics.fieldToRobotPoseVelocity(currentEstimatedPose, trajectory.update((System.currentTimeMillis() - startTime) / 1000.0, currentEstimatedPoseTrackers, packet)));
                 if (trajectory.isComplete()) {
                     currentMode = Mode.OPEN_LOOP;
                     internalSetVelocity(new Pose2d());
@@ -267,9 +266,7 @@ public class MecanumDrive extends Subsystem {
             for (int i = 0; i < 4; i++) {
                 lastWheelPositions[i] = motors[i].getCurrentPosition();
             }
-            for (int i = 0; i < 2; i++) {
-                lastTrackerPosition[i] = robot.getEncoderPosition(trackers[i]);
-            }
+            lastTrackerPositions = getTrackingPositions();
             return;
         }
 
@@ -284,12 +281,16 @@ public class MecanumDrive extends Subsystem {
         double currentHeadding = imu.getAngularOrientation().firstAngle;
         v = new Pose2d(v.pos(), currentHeadding - lastHeading);
 
+        Vector2d trackingDelta = getTrackingPositions().minus(lastTrackerPositions).plus(trackerCorrection.times(currentHeadding - lastHeading)).div(trackerTicksPerInch);
+        currentEstimatedPoseTrackers = Kinematics.relativeOdometryUpdate(currentEstimatedPoseTrackers, new Pose2d(trackingDelta, currentHeadding - lastHeading));
+        lastTrackerPositions = getTrackingPositions();
+
         lastHeading = currentHeadding;
         currentEstimatedPose = Kinematics.relativeOdometryUpdate(currentEstimatedPose, v);
     }
 
     public Vector2d getTrackingPositions () {
-        return new Vector2d(robot.getEncoderPosition(trackers[0]), robot.getEncoderPosition(trackers[1]));
+        return new Vector2d(robot.getEncoderPosition(trackers[1]), robot.getEncoderPosition(trackers[0]));
     }
 
     public void setMotorPIDF(double p, double i, double d, double f) {
@@ -319,6 +320,7 @@ public class MecanumDrive extends Subsystem {
 
     public void setCurrentEstimatedPose(Pose2d pose) {
         lastHeading = imu.getAngularOrientation().firstAngle;
+        currentEstimatedPoseTrackers = pose;
         currentEstimatedPose = pose;
     }
 

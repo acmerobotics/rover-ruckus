@@ -37,12 +37,12 @@ public class AutoPaths {
             PI / 6),
             PI / 2, PI / 4);
 
-    private static final Waypoint MARKER_CRATER = new Waypoint(new Pose2d(58, 48, 0), PI / 2, -PI / 2);
-    private static final Waypoint MARKER_DEPOT = new Waypoint(new Pose2d(48, 64, -PI / 2), PI / 2, PI);
+    private static final Waypoint MARKER_CRATER = new Waypoint(new Pose2d(60, 48, 0), PI / 2, -PI / 2);
+    private static final Waypoint MARKER_DEPOT = new Waypoint(new Pose2d(48, 60, -PI / 2), PI / 2, PI);
     private static final Waypoint MARKER_DEPOT_LEFT = new Waypoint(new Pose2d(48, 60, -PI / 2), 0, PI);
 
-    private static final Waypoint PARK_CRATER = new Waypoint(new Pose2d(62, -15, -PI / 2),-PI/2);
-    private static final Waypoint PARK_DEPOT = new Waypoint(new Pose2d(-8, 68, -PI), -PI);
+    private static final Waypoint PARK_CRATER = new Waypoint(new Pose2d(60, -15, -PI / 2),-PI/2);
+    private static final Waypoint PARK_DEPOT = new Waypoint(new Pose2d(-8, 60, -PI), -PI);
 
     private static final Waypoint SAMPLE_LEFT_CRATER = new Waypoint(new Pose2d(36 + SAMPLE_DIST, -(12 + SAMPLE_DIST), PI / 4), -PI / 4, PI / 4);
     private static final Waypoint SAMPLE_CENTER_CRATER = new Waypoint(new Pose2d(24 + SAMPLE_DIST, -(24 + SAMPLE_DIST), PI / 4), -PI / 4, 3 * PI / 4);

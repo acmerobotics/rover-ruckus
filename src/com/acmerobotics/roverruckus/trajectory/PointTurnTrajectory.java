@@ -49,6 +49,7 @@ public class PointTurnTrajectory extends Trajectory {
 
         double headingCorrection = headingController.update(headingError);
         double trackingCorrection = trackingController.update(trackingErrorMag);
+        if (trackingErrorMag == 0) trackingErrorMag = 1;
 
         Pose2d correction = new Pose2d(trackingError.div(trackingErrorMag).times(trackingCorrection), headingCorrection);
 
