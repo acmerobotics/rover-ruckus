@@ -68,7 +68,7 @@ public class Auto extends LinearOpMode {
 
             if (trajectory.containsFlag(AutoFlag.LOWER_LIFT)) {
                 robot.lift.setAsynch(true);
-                robot.lift.liftBottom();
+                robot.lift.goToPosition(0);
             }
         }
 
@@ -78,8 +78,6 @@ public class Auto extends LinearOpMode {
         robot.pause(1000);
         robot.intake.setIntakePower(0);
 
-        state.setLiftOffset(robot.lift.getOffset());
-        state.setRakeOffset(robot.intake.getOffset());
 
         if (media != null) {
             media.stop();

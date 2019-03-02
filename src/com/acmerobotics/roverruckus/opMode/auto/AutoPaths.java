@@ -37,18 +37,18 @@ public class AutoPaths {
             PI / 6),
             PI / 2, PI / 4);
 
-    private static final Waypoint MARKER_CRATER = new Waypoint(new Pose2d(60, 48, 0), PI / 2, -PI / 2);
+    private static final Waypoint MARKER_CRATER = new Waypoint(new Pose2d(60, 48, -PI/2), PI / 2, -PI / 2);
     private static final Waypoint MARKER_DEPOT = new Waypoint(new Pose2d(48, 60, -PI / 2), PI / 2, PI);
     private static final Waypoint MARKER_DEPOT_LEFT = new Waypoint(new Pose2d(48, 60, -PI / 2), 0, PI);
 
-    private static final Waypoint PARK_CRATER = new Waypoint(new Pose2d(60, -15, -PI / 2),-PI/2);
+    private static final Waypoint PARK_CRATER = new Waypoint(new Pose2d(60, -17, -PI / 2),-PI/2);
     private static final Waypoint PARK_DEPOT = new Waypoint(new Pose2d(-8, 60, -PI), -PI);
 
-    private static final Waypoint SAMPLE_LEFT_CRATER = new Waypoint(new Pose2d(36 + SAMPLE_DIST, -(12 + SAMPLE_DIST), PI / 4), -PI / 4, PI / 4);
-    private static final Waypoint SAMPLE_CENTER_CRATER = new Waypoint(new Pose2d(24 + SAMPLE_DIST, -(24 + SAMPLE_DIST), PI / 4), -PI / 4, 3 * PI / 4);
-    private static final Waypoint SAMPLE_RIGHT_CRATER = new Waypoint(new Pose2d(12 + SAMPLE_DIST, -(36 + SAMPLE_DIST), PI / 4), -PI / 4, 3 * PI / 4);
+    private static final Waypoint SAMPLE_LEFT_CRATER = new Waypoint(new Pose2d(36 + SAMPLE_DIST, -(12 + SAMPLE_DIST), -3* PI / 4), -PI / 4, PI / 4);
+    private static final Waypoint SAMPLE_CENTER_CRATER = new Waypoint(new Pose2d(24 + SAMPLE_DIST, -(24 + SAMPLE_DIST), -3* PI / 4), -PI / 4, 3 * PI / 4);
+    private static final Waypoint SAMPLE_RIGHT_CRATER = new Waypoint(new Pose2d(12 + SAMPLE_DIST, -(36 + SAMPLE_DIST), -3* PI / 4), -PI / 4, 3 * PI / 4);
 
-    private static final Waypoint SAMPLE_LEFT_SECOND = new Waypoint(new Pose2d(36 - SAMPLE_DIST, 60 - SAMPLE_DIST, -PI / 4), -3 * PI / 4, PI / 4);
+    private static final Waypoint SAMPLE_LEFT_SECOND = new Waypoint(new Pose2d(36 - SAMPLE_DIST, 60 - SAMPLE_DIST, -PI / 4), -PI, 0);
     private static final Waypoint SAMPLE_CENTER_SECOND = new Waypoint(new Pose2d(48 - SAMPLE_DIST, 48 - SAMPLE_DIST, -PI / 4), -3 * PI / 4, PI / 4);
     private static final Waypoint SAMPLE_RIGHT_SECOND = new Waypoint(new Pose2d(60 - SAMPLE_DIST, 36 - SAMPLE_DIST, -PI / 4), -3 * PI / 4, PI / 4);
 
@@ -56,8 +56,8 @@ public class AutoPaths {
     private static final Waypoint SAMPLE_CENTER_DEPOT = new Waypoint(new Pose2d(36, 36, -PI / 4), PI / 3);
     private static final Waypoint SAMPLE_RIGHT_DEPOT = new Waypoint(new Pose2d(48, 24, -PI / 4), PI / 4);
 
-    private static final Waypoint CLEAR_ONE_CRATER = new Waypoint(new Pose2d(36, -16, PI / 4), PI / 5);
-    private static final Waypoint CLEAR_TWO_CRATER = new Waypoint(new Pose2d(48, 0, 0), PI/4);
+    private static final Waypoint CLEAR_ONE_CRATER = new Waypoint(new Pose2d(36, -16, -PI / 2), PI / 5);
+    private static final Waypoint CLEAR_TWO_CRATER = new Waypoint(new Pose2d(52, 0, -PI/2), PI/4);
 
     private GoldLocation location;
     private StartLocation start;
@@ -133,13 +133,17 @@ public class AutoPaths {
                 .to(sample);
         if (start == StartLocation.CRATER && location != GoldLocation.LEFT)
             builder
-                    .to(clearOne)
-                    .to(clearTwo);
+                    .to(clearOne);
 
-        if (sampleBoth && location != GoldLocation.RIGHT)
+        if (start == StartLocation.CRATER)
+            builder.to(clearTwo);
+
+        if (sampleBoth && location != GoldLocation.RIGHT) {
             builder
                     .to(firstDepot)
                     .to(sampleSecond);
+            depot = new Waypoint(new Pose2d(depot.pos().pos(), -PI/3), depot.getEnter().getHeading(), depot.getExit().getHeading());
+        }
 
         builder.to(depot);
 

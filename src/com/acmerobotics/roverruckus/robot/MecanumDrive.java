@@ -68,11 +68,11 @@ public class MecanumDrive extends Subsystem {
     private static final Vector2d trackerCorrection = new Vector2d(3500, 0);
     private static final double[] trackerAngles = {0, Math.PI / 2};
 
-    private static final double trackerRadius = DistanceUnit.INCH.fromMm(35 / 2);
+    private static final double trackerRadius = DistanceUnit.INCH.fromMm(35.0 / 2.0);
 
     private static final double trackerTicksPerInch = (500 * 4) / (2 * trackerRadius * Math.PI);
 
-    public static double axialMaxV = 30;
+    public static double axialMaxV = 20;
     public static double axialMaxA = 30;
     public static double axialMaxJ = 30;
 
@@ -225,7 +225,7 @@ public class MecanumDrive extends Subsystem {
         packet.put("mode", currentMode);
         if (estimatingPose) {
             updatePoseEstimate();
-            drawPose(packet.fieldOverlay(), currentEstimatedPose, "red");
+//            drawPose(packet.fieldOverlay(), currentEstimatedPose, "red");
             drawPose(packet.fieldOverlay(), currentEstimatedPoseTrackers, "green");
             packet.put("poseX", currentEstimatedPoseTrackers.getX());
             packet.put("poseY", currentEstimatedPoseTrackers.getY());

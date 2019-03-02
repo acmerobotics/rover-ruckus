@@ -11,6 +11,8 @@ import com.acmerobotics.roadrunner.util.Angle;
 import com.acmerobotics.roverruckus.robot.MecanumDrive;
 import com.acmerobotics.roverruckus.util.PIDController;
 
+import java.util.Vector;
+
 public class SplineTrajectory extends Trajectory {
 
     private Path path;
@@ -90,6 +92,7 @@ public class SplineTrajectory extends Trajectory {
                 targetPose.getX() + trackingError.getY() * -Math.sin(theta),
                 targetPose.getY() + trackingError.getY() * Math.cos(theta)
         );
+
 
         packet.put("displacement", axialProfile.get(t).getX());
         packet.put("velocity", axialProfile.get(t).getV());

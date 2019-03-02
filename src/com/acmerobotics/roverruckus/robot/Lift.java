@@ -25,13 +25,13 @@ import java.util.Arrays;
 
 @Config
 public class Lift extends Subsystem {
-    public static double F_UP = .0917;
-    public static double F_DOWN = .045;
+    public static double F_UP = 1 / 11.873;
+    public static double F_DOWN = F_UP / 2;
     private double F = F_UP;
     public static double P = 1;
     public static double I = 0;
     public static double D = 0;
-    public static double V = 14;
+    public static double V = 20;
     public static double A = 30;
     public static double J = 30;
     public static double LOWER_P = -.5;
@@ -44,13 +44,13 @@ public class Lift extends Subsystem {
     public static double DUMP_UP = .15;
     public static double RATCHET_ENGAGE = .5;
     public static double RATCHET_DISENGAGE = .85;
-    public static double MARKER_UP = .6;
-    public static double MARKER_DOWN = .3;
+    public static double MARKER_UP = .8;
+    public static double MARKER_DOWN = .5;
     public static double LIFT_LATCH = 14.5;
-    public static double LIFT_SCORE = 20.5;
-    public static double LIFT_MAX = 20.5;
+    public static double LIFT_SCORE = 30;
+    public static double LIFT_MAX = 25;
     public static double LIFT_E_DUMP = 9;
-    public static double LIFT_FIND_LATCH_START = 11;
+    public static double LIFT_FIND_LATCH_START = 14;
     public static double LIFT_CLEARANCE = 10.25;
     public static double LIFT_DOWN = 1;
 
@@ -96,6 +96,7 @@ public class Lift extends Subsystem {
 
     public Placer placer;
     private boolean gateArmClosed = false;
+    private boolean dumped = false;
 
     private Robot robot;
 
@@ -126,7 +127,7 @@ public class Lift extends Subsystem {
     }
 
     public double getPosition() {
-        return ((motor1.getCurrentPosition() / motor1.getMotorType().getTicksPerRev()) * Math.PI * RADIUS * 2) + offset;
+        return ((motor1.getCurrentPosition() / (motor1.getMotorType().getTicksPerRev() * (18.0 / 20.0))) * Math.PI * RADIUS * 2) + offset;
     }
 
     public void setPosition(double position) {
@@ -222,6 +223,7 @@ public class Lift extends Subsystem {
         if (findLatchOnCompletion) {
             liftMode = LiftMode.FIND_LATCH;
         }
+        if (dumpPositionOnCompletion == DUMP_UP) dumped = true;
         openGateOnCompletion = false;
         moveDumpOnCompletion = false;
         closePlacerOnCompletion = false;
@@ -236,6 +238,7 @@ public class Lift extends Subsystem {
         placer.reset();
         liftMode = LiftMode.LOWERING;
         lowerStartTime = System.currentTimeMillis();
+        dumped = false;
     }
 
     public void goToPosition(double position) {
@@ -257,7 +260,7 @@ public class Lift extends Subsystem {
         if (Math.abs(v) < .1 && liftMode != LiftMode.DRIVER_CONTROLLED) return;
         if (getPosition() >= LIFT_MAX && v > 0) return;
         if (getPosition() <= 0 && v < 0) return;
-        if (!ratchetEngaged) v /= 2;
+//        if (!ratchetEngaged) v /= 2; todo change this back
         liftMode = LiftMode.DRIVER_CONTROLLED;
         moveDumpOnCompletion = false;
         closePlacerOnCompletion = false;
@@ -267,7 +270,7 @@ public class Lift extends Subsystem {
     }
 
     private void internalSetVelocity(double v) {
-        if (v != 0 && liftMode != LiftMode.HOLD_POSITION) dumpMiddle();
+        if (v != 0 && liftMode != LiftMode.HOLD_POSITION && !dumped) dumpMiddle();
         motor1.setPower(v);
         motor2.setPower(v);
     }
@@ -293,6 +296,7 @@ public class Lift extends Subsystem {
         setDumpOnCompletion(DUMP_MIDDLE);
         closePlacerOnCompletion = true;
         gateArmClosed = false;
+        dumped = false;
     }
 
     public void liftBottom() {
@@ -300,6 +304,7 @@ public class Lift extends Subsystem {
         setDumpOnCompletion(DUMP_DOWN);
         placer.reset();
         openGateOnCompletion = true;
+        dumped = false;
     }
 
     public void dumpUp() {
@@ -307,12 +312,16 @@ public class Lift extends Subsystem {
         else if (getPosition() < LIFT_E_DUMP) {
             goToPosition(LIFT_E_DUMP);
             setDumpOnCompletion(DUMP_UP);
-        } else dump.setPosition(DUMP_UP);
+        } else {
+            dump.setPosition(DUMP_UP);
+            dumped = true;
+        }
         Log.e("the lift", "I guess the dump is supposed to go up lol");
     }
 
     public void dumpMiddle() {
         dump.setPosition(DUMP_MIDDLE);
+        dumped = false;
     }
 
     public void dumpDown() {

@@ -27,7 +27,8 @@ public class SamplingVision {
     public static int K_SIZE = 20;
     public static int BLUR_SIZE = 5;
     public static int DISPLAY = 0;
-    public static int THRESHOLD = 300;
+    public static int THRESHOLD = 250;
+    public static int CROP = 125;
     private static int i = 0;
     private static GoldLocation location = GoldLocation.CENTER;
 
@@ -70,16 +71,21 @@ public class SamplingVision {
                 MatOfPoint2f x = new MatOfPoint2f();
                 x.fromArray(contour.toArray());
                 RotatedRect rect = Imgproc.minAreaRect(x);
+                if (rect.center.x < CROP) continue;
                 double size = Math.hypot(rect.size.height, rect.size.width);
                 if (size > max) {
                     max = size;
                     best = rect;
                 }
             }
+            if (best == null) {
+                location = GoldLocation.RIGHT;
+                return in;
+            }
             x = best.center.x;
-            if (x < THRESHOLD) location = GoldLocation.LEFT;
-            else location = GoldLocation.CENTER;
             y = best.center.y;
+            if (y > THRESHOLD) location = GoldLocation.LEFT;
+            else location = GoldLocation.CENTER;
             Imgproc.rectangle(in, new Point(best.boundingRect().x, best.boundingRect().y), new Point(best.boundingRect().x + best.boundingRect().width, best.boundingRect().y + best.boundingRect().height), new Scalar(255, 0, 0), 5);
         } else location = GoldLocation.RIGHT;
         if (display()) ret = in;

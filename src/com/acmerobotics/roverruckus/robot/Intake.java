@@ -151,6 +151,7 @@ public class Intake extends Subsystem {
     public void retractRake() {
         rakeUp();
         goToPosition(RAKE_RETRACT_DISTANCE);
+        Log.e(TAG, "retracting");
     }
 
     @Override
@@ -163,7 +164,7 @@ public class Intake extends Subsystem {
     }
 
     public void setOffset(double offset) {
-        this.offset = offset;
+        this.offset = 0;
     }
 
 

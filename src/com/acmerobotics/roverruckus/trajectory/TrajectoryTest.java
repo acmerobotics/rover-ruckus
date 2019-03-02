@@ -42,7 +42,7 @@ public class TrajectoryTest {
                         }
                     }
                     for (Trajectory trajectory : trajectories) {
-                        for (double t = 0; t <= trajectory.duration(); t += .1) {
+                        for (double t = 0; t <= trajectory.duration(); t += .01) {
                             Pose2d pose = trajectory.getPose(t);
                             double v = trajectory.getV(t);
                             writer.write(String.format("%f, %f, %f, %f\n", pose.getX(), pose.getY(), pose.getHeading(), v));

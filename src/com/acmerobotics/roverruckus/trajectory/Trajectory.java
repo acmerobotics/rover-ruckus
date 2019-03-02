@@ -11,15 +11,16 @@ import java.util.ArrayList;
 @Config
 public abstract class Trajectory {
 
-    public static double AXIAL_P = 6;
+    public static double AXIAL_P = 2;
     public static double AXIAL_I = 0;
     public static double AXIAL_D = 0;
-    public static double LATERAL_P = 6;
+    public static double LATERAL_P = 2;
     public static double LATERAL_I = 0;
     public static double LATERAL_D = 0;
     public static double HEADING_P = 6;
     public static double HEADING_I = 0;
     public static double HEADING_D = 0;
+    public static double K_A = 0;
 
     private ArrayList<AutoFlag> flags = new ArrayList<>();
 
