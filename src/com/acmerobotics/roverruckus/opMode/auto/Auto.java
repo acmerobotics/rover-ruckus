@@ -17,7 +17,6 @@ import org.firstinspires.ftc.teamcode.R;
 
 import java.util.ArrayList;
 
-@Config
 @Autonomous(name = "Auto")
 public class Auto extends LinearOpMode {
 

@@ -46,7 +46,6 @@ public class TeleOp extends LinearOpMode {
                 robot.lift.setVelocity(-1);
             else if (Math.abs(gamepad2.left_stick_y) > .1 || !robot.lift.isBusy()) {
                 robot.lift.setVelocity(-gamepad2.left_stick_y);
-                if (-gamepad2.left_stick_y > 0) liftRaised = true;
             }
             if (gamepad2.right_bumper) robot.lift.disengageRatchet();
 
@@ -57,21 +56,15 @@ public class TeleOp extends LinearOpMode {
                 robot.lift.placer.setEnabled(false);
                 robot.lift.liftTop();
                 robot.lift.placer.closeIntake();
-                liftRaised = false;
             }
 
             if (gamepad2.dpad_left) {
                 robot.lift.lower();
-                liftRaised = false;
             }
 
             if (gamepad2.dpad_down) {
                 robot.lift.liftBottom();
                 robot.lift.placer.reset();
-                if (liftRaised) {
-                    robot.lift.setPosition(Lift.LIFT_SCORE);
-                }
-                liftRaised = false;
             }
 
             if (gamepad2.dpad_right) robot.lift.dumpUp();

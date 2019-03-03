@@ -28,14 +28,14 @@ public class Lift extends Subsystem {
     public static double F_UP = 1 / 11.873;
     public static double F_DOWN = F_UP / 2;
     private double F = F_UP;
-    public static double P = 1;
+    public static double P = .5;
     public static double I = 0;
     public static double D = 0;
     public static double V = 20;
     public static double A = 30;
     public static double J = 30;
     public static double LOWER_P = -.5;
-    public static double RADIUS = .5; //find actual value in inches when lift is in CAD
+    public static double RADIUS = .5;
     public static double LOWER_DISTANCE = .15;
     public static double LOWER_THRESHOLD = .05;
 
@@ -46,19 +46,21 @@ public class Lift extends Subsystem {
     public static double RATCHET_DISENGAGE = .85;
     public static double MARKER_UP = .8;
     public static double MARKER_DOWN = .5;
+
     public static double LIFT_LATCH = 14.5;
-    public static double LIFT_SCORE = 30;
-    public static double LIFT_MAX = 25;
+    public static double LIFT_SCORE = 25;
+    public static double LIFT_MAX = 30;
     public static double LIFT_E_DUMP = 9;
     public static double LIFT_FIND_LATCH_START = 14;
     public static double LIFT_CLEARANCE = 10.25;
-    public static double LIFT_DOWN = 1;
+    public static double LIFT_DOWN = .5;
 
     public static double FIND_LATCH_V = .3;
 
     public static double K_STATIC = -.3;
     public static double CONTACT_DISTANCE = .4;
     public static int LOWER_WAIT_TIME = 1000;
+
     private DcMotorEx motor1, motor2;
     private Servo marker, ratchet, dump;
     private SharpDistanceSensor distance;
@@ -178,10 +180,6 @@ public class Lift extends Subsystem {
                 packet.put("error", error);
                 if (Math.abs(error) < LOWER_THRESHOLD) {
                     findLatch();
-//                    liftMode = LiftMode.HOLD_POSITION;
-//                    internalSetVelocity(0);
-//                    targetPosition = getPosition();
-//                    pidController = new PIDController(P, I, D);
                     break;
                 }
                 correction = pidController.update(error);
@@ -195,7 +193,7 @@ public class Lift extends Subsystem {
             case FIND_LATCH:
                 internalSetVelocity(FIND_LATCH_V);
                 if (!liftSensor.getState()) {
-                    Log.e(Auto.TAG, "found the sensor");
+                    Log.i(Auto.TAG, "found the sensor");
                     liftMode = LiftMode.HOLD_POSITION;
                     internalSetVelocity(0);
                     targetPosition = getPosition();
@@ -260,7 +258,7 @@ public class Lift extends Subsystem {
         if (Math.abs(v) < .1 && liftMode != LiftMode.DRIVER_CONTROLLED) return;
         if (getPosition() >= LIFT_MAX && v > 0) return;
         if (getPosition() <= 0 && v < 0) return;
-//        if (!ratchetEngaged) v /= 2; todo change this back
+        if (!ratchetEngaged) v /= 2;
         liftMode = LiftMode.DRIVER_CONTROLLED;
         moveDumpOnCompletion = false;
         closePlacerOnCompletion = false;
@@ -274,7 +272,6 @@ public class Lift extends Subsystem {
         motor1.setPower(v);
         motor2.setPower(v);
     }
-
 
     public void disengageRatchet() {
         ratchet.setPosition(RATCHET_DISENGAGE);
@@ -316,7 +313,6 @@ public class Lift extends Subsystem {
             dump.setPosition(DUMP_UP);
             dumped = true;
         }
-        Log.e("the lift", "I guess the dump is supposed to go up lol");
     }
 
     public void dumpMiddle() {
