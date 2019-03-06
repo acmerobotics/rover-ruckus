@@ -49,6 +49,8 @@ public class Auto extends LinearOpMode {
 
         if (media != null) media.start();
 
+        robot.pause(robot.config.getDelay() * 1000);
+
         //lower
         if (robot.config.getLatched()) {
             Log.i(TAG, "lowering");
