@@ -35,15 +35,12 @@ public class Auto extends LinearOpMode {
             Log.e(TAG, "error playing media: " + e.getMessage());
         }
 
-        SamplingVision.enable();
         RobotState state = new RobotState(hardwareMap.appContext);
 
         waitForStart();
 
-        CameraFrameGrabber.getInstance().setOverlay(SamplingVision.processFrame(CameraFrameGrabber.getInstance().getFrame()));
-        GoldLocation location = SamplingVision.getLocation();
+        GoldLocation location = GoldLocation.RIGHT;
         Log.i(TAG, location.toString());
-        SamplingVision.disable();
         AutoPaths autoPaths = new AutoPaths(location, robot.config.getStartLocation(), robot.config.getSampleBoth());
         ArrayList<Trajectory> trajectories = autoPaths.paths();
 
