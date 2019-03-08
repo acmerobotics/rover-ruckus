@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import android.graphics.Color;
 
 @Config
 public class Placer extends Subsystem {
@@ -72,59 +72,10 @@ public class Placer extends Subsystem {
     public void update(TelemetryPacket packet) {
         packet.put("enabled", enabled);
         if (!enabled) return;
-        packet.put("front ratio", (double) frontColor.red() / ((double) frontColor.blue()) + .0001);
-        packet.put("back ratio", (double) backColor.red() / ((double) backColor.blue()) + .0001);
-
-        packet.put("front dist", frontDistance.getDistance(DistanceUnit.CM));
-        packet.put("back dist", backDistance.getDistance(DistanceUnit.CM));
-
-        packet.put("first in", firstIn);
-        packet.put("first out", firstOut);
-        packet.put("second in", secondIn);
-        packet.put("second out", secondOut);
-
-
-        Mineral back = getMineral(backColor, backDistance);
-        Mineral front = getMineral(frontColor, frontDistance);
-
-        packet.put("frontCurrent", front.toString());
-        packet.put("backCurrent", back.toString());
-
-        if (System.currentTimeMillis() < waitTime) return;
-
-//        if (back != Mineral.NONE && !firstIn) {
-//           gateServo.setPosition(gateClose);
-//           waitTime = System.currentTimeMillis() + delay;
-//           firstIn = true;
-//        } else if (!secondIn && back != Mineral.NONE && front != Mineral.NONE) {
-//            intakeServo.setPosition(intakeClose);
-//            secondIn = true;
-//            enabled = false;
-//        }
-//
-//        if (secondOut) {
-//            armServo.setPosition(back == Mineral.SILVER ? armDivert : armOpen);
-//            gateServo.setPosition(gateOpen);
-//            enabled = false;
-//        }
-//        else if (firstOut) {
-//            armServo.setPosition(front == Mineral.SILVER ? armDivert : armOpen);
-//            if (front == back) gateServo.setPosition(gateOpen);
-//            enabled = false;
-//        }
-
-
-        if ((back != Mineral.NONE || front != Mineral.NONE) && intaking)
-            gateServo.setPosition(gateClose);
-
-
     }
 
     private Mineral getMineral(ColorSensor sensor, DistanceSensor distanceSensor) {
-        if (distanceSensor.getDistance(DistanceUnit.CM) > distanceThreshold) return Mineral.NONE;
-        double ratio = ((double) sensor.red()) / ((double) sensor.blue() + .0001);
-        if (ratio < colorThreshold) return Mineral.SILVER;
-        return Mineral.GOLD;
+        return Mineral.NONE;
     }
 
     public void releaseFirst() {
