@@ -15,6 +15,7 @@ import org.opencv.android.JavaCamera2View;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
+import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -118,6 +119,7 @@ public class VisionCamera implements OpModeManagerNotifier.Notifications, JavaCa
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat frame = inputFrame.rgba();
+        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2RGB);
         Log.i(TAG, "" + frame.type());
         for (Tracker tracker: trackers) {
             tracker.processFrame(frame);

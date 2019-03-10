@@ -25,8 +25,12 @@ public class VisionTest extends LinearOpMode {
         while (!isStopRequested()) {
             TelemetryPacket packet = new TelemetryPacket();
             packet.put("location", samplingVision.getLocation().toString());
+            packet.put("x", samplingVision.getX());
+            packet.put("y", samplingVision.getY());
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
+
+        samplingVision.disable();
 
     }
 }
