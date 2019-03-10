@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Config
-public class SamplingVision {
+public class SamplingVision implements Tracker{
 
     public static int MIN_HUE = 5;
     public static int MIN_SAT = 150;
@@ -32,32 +32,29 @@ public class SamplingVision {
     private static int i = 0;
     private static GoldLocation location = GoldLocation.CENTER;
 
-    private static double x = 0;
-    private static double y = 0;
-    private static boolean enabled = false;
+    private double x = 0;
+    private double y = 0;
+    private boolean enabled = false;
 
-    public synchronized static double getX() {
+    public synchronized double getX() {
         return x;
     }
 
-    public synchronized static double getY() {
+    public synchronized double getY() {
         return y;
     }
 
-    public synchronized static Mat processFrame(Mat in) {
-        if (!enabled) return in;
-        i = 0;
-        Mat frame = Mat.zeros(in.size(), in.type());
-        Mat ret = in;
-        Imgproc.blur(in, frame, new Size(BLUR_SIZE, BLUR_SIZE));
-        if (display()) ret = frame;
+    public synchronized void processFrame(Mat in) {
+        if (!enabled) return;
+        Size s = new Size(600, 800);
+        Mat frame = Mat.zeros(s, in.type());
+        Imgproc.resize(in, frame, s);
+
+        Imgproc.blur(frame, frame, new Size(BLUR_SIZE, BLUR_SIZE));
         Imgproc.cvtColor(frame, frame, Imgproc.COLOR_RGB2HSV);
         Core.inRange(frame, new Scalar(MIN_HUE, MIN_SAT, MIN_VAL), new Scalar(MAX_HUE, MAX_SAT, MAX_VAL), frame);
-        if (display()) ret = frame;
         Imgproc.morphologyEx(frame, frame, Imgproc.MORPH_OPEN, Mat.ones(K_SIZE, K_SIZE, frame.type()));
-        if (display()) ret = frame;
         Imgproc.morphologyEx(frame, frame, Imgproc.MORPH_CLOSE, Mat.ones(K_SIZE, K_SIZE, frame.type()));
-        if (display()) ret = frame;
 
         List<MatOfPoint> contours = new ArrayList<>();
         Mat hierarchy = new Mat();
@@ -80,7 +77,7 @@ public class SamplingVision {
             }
             if (best == null) {
                 location = GoldLocation.RIGHT;
-                return in;
+                return;
             }
             x = best.center.x;
             y = best.center.y;
@@ -88,8 +85,6 @@ public class SamplingVision {
             else location = GoldLocation.CENTER;
             Imgproc.rectangle(in, new Point(best.boundingRect().x, best.boundingRect().y), new Point(best.boundingRect().x + best.boundingRect().width, best.boundingRect().y + best.boundingRect().height), new Scalar(255, 0, 0), 5);
         } else location = GoldLocation.RIGHT;
-        if (display()) ret = in;
-        return ret;
     }
 
     private static boolean display() {
@@ -97,19 +92,16 @@ public class SamplingVision {
         return i == DISPLAY;
     }
 
-    public static GoldLocation getLocation() {
+    public GoldLocation getLocation() {
         return location;
     }
 
-    public static void enable() {
+    public void enable() {
         enabled = true;
     }
 
-    public static void disable() {
+    public void disable() {
         enabled = false;
     }
-
-    private SamplingVision() {
-    } //static class
 
 }
