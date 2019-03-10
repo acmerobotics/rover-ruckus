@@ -7,6 +7,8 @@ import com.acmerobotics.roverruckus.robot.Robot;
 import com.acmerobotics.roverruckus.robot.RobotState;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.vision.GoldLocation;
+import com.acmerobotics.roverruckus.vision.SamplingVision;
+import com.acmerobotics.roverruckus.vision.VisionCamera;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
@@ -23,6 +25,10 @@ public class Auto extends LinearOpMode {
     public void runOpMode() {
 
         Robot robot = new Robot(this, hardwareMap);
+        VisionCamera camera = new VisionCamera();
+        SamplingVision samplingVision = new SamplingVision();
+        camera.addTracker(samplingVision);
+        samplingVision.enable();
 
         MediaPlayer media = null;
         try {
@@ -32,11 +38,11 @@ public class Auto extends LinearOpMode {
             Log.e(TAG, "error playing media: " + e.getMessage());
         }
 
-        RobotState state = new RobotState(hardwareMap.appContext);
-
         waitForStart();
 
-        GoldLocation location = GoldLocation.RIGHT;
+        GoldLocation location = samplingVision.getLocation();
+        samplingVision.disable();
+
         Log.i(TAG, location.toString());
         AutoPaths autoPaths = new AutoPaths(location, robot.config.getStartLocation(), robot.config.getSampleBoth());
         ArrayList<Trajectory> trajectories = autoPaths.paths();
@@ -47,10 +53,10 @@ public class Auto extends LinearOpMode {
 
         //lower
         if (robot.config.getLatched()) {
-            Log.i(TAG, "lowering");
             robot.lift.lower();
             robot.waitForAllSubsystems();
         }
+
         robot.drive.setCurrentEstimatedPose(autoPaths.start().pos());
 
         for (Trajectory trajectory : trajectories) {
@@ -78,8 +84,5 @@ public class Auto extends LinearOpMode {
             media.stop();
             media.release();
         }
-
-
     }
-
 }
