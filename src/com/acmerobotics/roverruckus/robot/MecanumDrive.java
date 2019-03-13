@@ -115,10 +115,9 @@ public class MecanumDrive extends Subsystem {
         this.robot = robot;
         motors = new DcMotorEx[motorNames.length];
         for (int i = 0; i < motorNames.length; i++) {
-            motors[i] = (DcMotorEx) hardwareMap.get(DcMotor.class, motorNames[i]);
+            motors[i] = robot.getMotor(motorNames[i]);
             motors[i].setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             motors[i].setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//            robot.addMotor(motors[i]);
         }
         motors[0].setDirection(DcMotorSimple.Direction.FORWARD);
         motors[1].setDirection(DcMotorSimple.Direction.FORWARD);
@@ -127,7 +126,7 @@ public class MecanumDrive extends Subsystem {
 
         trackers = new DcMotor[trackerNames.length];
         for (int i = 0; i < trackerNames.length; i++) {
-            trackers[i] = hardwareMap.dcMotor.get(trackerNames[i]);
+            trackers[i] = robot.getMotor(trackerNames[i]);
         }
 
         I2cDeviceSynch imuI2cDevice = LynxOptimizedI2cFactory.createLynxI2cDeviceSynch(hardwareMap.get(LynxModule.class, "hub1"), 0);

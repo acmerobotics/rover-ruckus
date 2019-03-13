@@ -13,17 +13,15 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor {
 
     private Robot robot;
     private DcMotorEx delegate;
-    private int hub;
     private double cachedPower = 0;
     private double cachedVelocity = 0;
     private boolean needsPowerUpdate = false;
     private boolean needsVelocityUpdate = false;
     private AngleUnit angleUnit = AngleUnit.RADIANS;
 
-    public CachingDcMotorEx(Robot robot, DcMotorEx delegate, int hub) {
+    public CachingDcMotorEx(Robot robot, DcMotorEx delegate) {
         this.robot = robot;
         this.delegate = delegate;
-        this.hub = hub;
     }
 
     @Override
@@ -37,13 +35,11 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor {
     }
 
     @Override
-    public void setPower(double power) {
-        synchronized (this) {
+    public synchronized void setPower(double power) {
             if (power != cachedPower) {
                 cachedPower = power;
                 needsPowerUpdate = true;
             }
-        }
     }
 
     @Override
@@ -54,10 +50,8 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor {
     @Override
     public synchronized void update() {
         robot.addTelemetry("motorUpdated", "I guess");
-        synchronized (this) {
             if (needsPowerUpdate) delegate.setPower(cachedPower);
             if (needsVelocityUpdate) delegate.setVelocity(cachedVelocity, angleUnit);
-        }
     }
 
     @Override
@@ -81,14 +75,12 @@ public class CachingDcMotorEx implements DcMotorEx, CachingMotor {
     }
 
     @Override
-    public void setVelocity(double angularRate, AngleUnit unit) {
-        synchronized (this) {
+    public synchronized void setVelocity(double angularRate, AngleUnit unit) {
             if (angularRate != cachedVelocity) {
                 needsVelocityUpdate = true;
                 cachedVelocity = angularRate;
                 this.angleUnit = unit;
             }
-        }
     }
 
     @Override

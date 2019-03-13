@@ -7,6 +7,7 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.profile.MotionProfile;
 import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
+import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
 import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -48,15 +49,15 @@ public class Intake extends Subsystem {
 
     public Intake(Robot robot, HardwareMap map) {
 
-        rakeMotor = map.get(DcMotorEx.class, "rakeMotor");
+        rakeMotor = robot.getMotor("rakeMotor");
         rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
         rakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 //        setPosition(0);
 
-        intakeMotor = map.get(DcMotorEx.class, "intakeMotor");
+        intakeMotor = robot.getMotor("intakeMotor");
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        rakeServo = map.get(Servo.class, "rake");
+        rakeServo = robot.getServo("rake");
         setPosition(0);
         controller = new PIDController(P, I, D);
         rakeUp();

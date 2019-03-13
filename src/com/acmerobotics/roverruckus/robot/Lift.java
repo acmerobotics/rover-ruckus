@@ -10,6 +10,7 @@ import com.acmerobotics.roadrunner.profile.MotionState;
 import com.acmerobotics.roverruckus.hardware.SharpDistanceSensor;
 import com.acmerobotics.roverruckus.opMode.auto.Auto;
 import com.acmerobotics.roverruckus.util.PIDController;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -64,7 +65,6 @@ public class Lift extends Subsystem {
     private DcMotorEx motor1, motor2;
     private Servo marker, ratchet, dump;
     private SharpDistanceSensor distance;
-    private DigitalChannel liftSensor;
     private boolean ratchetEngaged = true;
 
     private double offset;
@@ -104,19 +104,18 @@ public class Lift extends Subsystem {
 
     public Lift(Robot robot, HardwareMap hardwareMap) {
         this.robot = robot;
-        motor1 = hardwareMap.get(DcMotorEx.class, "liftMotor1");
+        motor1 = robot.getMotor("liftMotor1");
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
         motor1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        motor2 = hardwareMap.get(DcMotorEx.class, "liftMotor2");
+        motor2 = robot.getMotor("liftMotor2");
         motor2.setDirection(DcMotorSimple.Direction.FORWARD);
         motor2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         setPosition(0);
 
-        ratchet = hardwareMap.get(Servo.class, "ratchet");
-        dump = hardwareMap.get(Servo.class, "dump");
-        marker = hardwareMap.get(Servo.class, "marker");
-        distance = new SharpDistanceSensor(hardwareMap.analogInput.get("dist"));
-        liftSensor = hardwareMap.digitalChannel.get("liftSensor");
+        ratchet = robot.getServo("ratchet");
+        dump = robot.getServo("dump");
+        marker = robot.getServo("marker");
+        distance = new SharpDistanceSensor(robot.getAnalogInput(0, 0)); //todo check this port
 
         pidController = new PIDController(P, I, D);
 
@@ -192,7 +191,7 @@ public class Lift extends Subsystem {
                 break;
             case FIND_LATCH:
                 internalSetVelocity(FIND_LATCH_V);
-                if (!liftSensor.getState()) {
+                if (!isSensor()) {
                     Log.i(Auto.TAG, "found the sensor");
                     liftMode = LiftMode.HOLD_POSITION;
                     internalSetVelocity(0);
@@ -338,7 +337,7 @@ public class Lift extends Subsystem {
     }
 
     public boolean isSensor() {
-        return liftSensor.getState();
+        return robot.getDigitalPort(0,0); //todo check this port
     }
 
     public void findLatch() {

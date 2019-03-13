@@ -5,6 +5,11 @@ import android.util.Log;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roverruckus.hardware.CachingAnalogInput;
+import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
+import com.acmerobotics.roverruckus.hardware.CachingMotor;
+import com.acmerobotics.roverruckus.hardware.CachingServo;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.lynx.LynxModuleIntf;
 import com.qualcomm.hardware.lynx.commands.core.LynxGetBulkInputDataCommand;
 import com.qualcomm.hardware.lynx.commands.core.LynxGetBulkInputDataResponse;
@@ -13,8 +18,10 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.GlobalWarningSource;
 import com.qualcomm.robotcore.util.RobotLog;
 
@@ -37,8 +44,8 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     public Intake intake;
     private List<Subsystem> subsystems;
 
-    private Map<DcMotorController, LynxModuleIntf> hubs;
-    private Map<LynxModuleIntf, LynxGetBulkInputDataResponse> responses;
+    private final Map<DcMotorController, LynxModuleIntf> hubs;
+    private final Map<LynxModuleIntf, LynxGetBulkInputDataResponse> responses;
     private boolean updated = false;
 
     private OpModeManagerImpl opModeManager;
@@ -51,16 +58,21 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     private List<String> telemetryLines;
 
     private LinearOpMode master;
+    private HardwareMap map;
 
     public OpModeConfiguration config;
 
+    private List<CachingMotor> motors;
+
     public Robot(LinearOpMode opMode, HardwareMap map) {
         this.master = opMode;
+        this.map = map;
         subsystems = new ArrayList<>();
         packets = new EvictingBlockingQueue<>(new ArrayBlockingQueue<TelemetryPacket>(10));
         telemetry = new HashMap<>();
         telemetryLines = new ArrayList<>();
         config = new OpModeConfiguration(map.appContext);
+        this.motors = new ArrayList<>();
 
         try {
         drive = new MecanumDrive(this, map);
@@ -81,12 +93,6 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         } catch (Exception e) {
             telemetryLines.add("problem with lift");
         }
-//        try {
-//            placer = new Placer(map);
-//            subsystems.add(placer);
-//        } catch (Exception e) {
-//            telemetryLines.add("problem with placer");
-//        }
 
         hubs = new HashMap<>(2);
         responses = new HashMap<>(2);
@@ -137,19 +143,6 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     }
 
     public void updateSubsystems() {
-        for (LynxModuleIntf hub : hubs.values()) {
-            LynxGetBulkInputDataCommand command = new LynxGetBulkInputDataCommand(hub);
-            try {
-                responses.put(hub, command.sendReceive());
-                updated = true;
-            } catch (Exception e) {
-                Log.e("get bulk data error", e.getMessage());
-                updated = false;
-            }
-        }
-
-        telemetry.put("hubs updated", updated);
-
         TelemetryPacket packet = new TelemetryPacket();
         packet.addTimestamp();
         for (Subsystem subsystem : subsystems) {
@@ -164,6 +157,25 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         packets.offer(packet);
     }
 
+    public void updateHardware () {
+        for (CachingMotor motor: motors) {
+            motor.update();
+        }
+
+        for (LynxModuleIntf hub : hubs.values()) {
+            LynxGetBulkInputDataCommand command = new LynxGetBulkInputDataCommand(hub);
+            try {
+                responses.put(hub, command.sendReceive());
+                updated = true;
+            } catch (Exception e) {
+                Log.e("get bulk data error", e.getMessage());
+                updated = false;
+            }
+        }
+
+        telemetry.put("hubs updated", updated);
+    }
+
     public int getEncoderPosition(DcMotor motor) {
         if (!updated) return 0;
         synchronized (responses) {
@@ -171,14 +183,14 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         }
     }
 
-    public boolean getDigitalPort(LynxModuleIntf hub, int port) {
+    public boolean getDigitalPort(int hub, int port) {
         if (!updated) return false;
         synchronized (responses) {
             return responses.get(hub).getDigitalInput(port);
         }
     }
 
-    public int getAnalogPort(LynxModuleIntf hub, int port) {
+    public int getAnalogPort(int hub, int port) {
         if (!updated) return 0;
         synchronized (responses) {
             return responses.get(hub).getAnalogInput(port);
@@ -188,7 +200,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     public int getMotorVelocity(DcMotor motor) {
         if (!updated) return 0;
         synchronized (responses) {
-            return responses.get(hubs.get(motor.getController())).getVelocity(motor.getPortNumber());
+            return responses.get(hubs.get(motor.getController())).getVelocity(motor.getPortNumber()) * (motor.getDirection() == DcMotorSimple.Direction.FORWARD ? 1 : -1);
         }
     }
 
@@ -253,12 +265,6 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 
     @Override
     public String getGlobalWarning() {
-//        StringBuilder builder = new StringBuilder();
-//        for (Subsystem subsystem: subsystemsWithProblem) {
-//            builder.append(subsystem.getClass().getName());
-//            builder.append('\n');
-//        }
-//        return builder.toString();
         return "";
     }
 
@@ -274,9 +280,6 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 
     @Override
     public void clearGlobalWarning() {
-//        synchronized (subsystemsWithProblem) {
-//            subsystemsWithProblem.clear();
-//        }
     }
 
     public void waitForAllSubsystems() {
@@ -288,7 +291,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
                 if (subsystem.isBusy()) {
                     String string = subsystem.getClass().getCanonicalName() + " is busy";
                     if (!telemetryLines.contains(string))
-                        telemetryLines.add(subsystem.getClass().getSimpleName() + " is busy");
+                        telemetryLines.add(string);
                     complete = false;
                 }
             }
@@ -297,9 +300,17 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     }
 
     public void update() {
+        long start = System.currentTimeMillis();
         updateSubsystems();
+        long subsystemEnd = System.currentTimeMillis();
         updateTelemetry();
-//        updateHardware();
+        long telemetryEnd = System.currentTimeMillis();
+        updateHardware();
+        long end = System.currentTimeMillis();
+        telemetry.put("looptime", end - start);
+        telemetry.put("subsystemTime", subsystemEnd - start);
+        telemetry.put("telemetryTime", telemetryEnd - subsystemEnd);
+        telemetry.put("hardwareTime", end - telemetryEnd);
     }
 
 
@@ -308,5 +319,21 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         while (((millis + start) - System.currentTimeMillis()) > 0) {
             update();
         }
+    }
+
+    public CachingDcMotorEx getMotor (String deviceName) {
+        CachingDcMotorEx motor = new CachingDcMotorEx(this, map.get(DcMotorEx.class, deviceName));
+        this.motors.add(motor);
+        return motor;
+    }
+
+    public CachingAnalogInput getAnalogInput (int hub, int port) {
+        return new CachingAnalogInput(this, hub, port);
+    }
+
+    public CachingServo getServo (String deviceName) {
+        CachingServo servo = new CachingServo(map.get(Servo.class, deviceName));
+        motors.add(servo);
+        return servo;
     }
 }
