@@ -4,9 +4,11 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.path.Path;
-import com.acmerobotics.roverruckus.opMode.auto.AutoFlag;
+import com.acmerobotics.roverruckus.opMode.auto.AutoAction;
+import com.acmerobotics.roverruckus.opMode.auto.AutoOpMode;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 @Config
 public abstract class Trajectory {
@@ -22,17 +24,33 @@ public abstract class Trajectory {
     public static double HEADING_D = 0;
     public static double K_A = 0;
 
-    private ArrayList<AutoFlag> flags = new ArrayList<>();
+    private Map<AutoAction, Double> actions;
 
-    public void addFlag(AutoFlag flag) {
-        flags.add(flag);
+    public Trajectory () {
+        actions = new HashMap<>();
     }
 
-    public boolean containsFlag(AutoFlag flag) {
-        return flags.contains(flag);
+    public Trajectory addAction (double t, AutoAction action) {
+        if (t < 0 || t > duration()) t = duration();
+        actions.put(action, t);
+        return this;
     }
 
-    public abstract Pose2d update(double t, Pose2d pose, TelemetryPacket packet);
+    public Trajectory addAction (AutoAction action) {
+        return addAction(0, action);
+    }
+
+    public Trajectory addActionOnCompletion (AutoAction action) {
+        return addAction(-1, action);
+    }
+
+    public Pose2d update(double t, Pose2d pose, TelemetryPacket packet) {
+        for (AutoAction action: actions.keySet())
+            if (actions.get(action) >= t) action.execute();
+        return internalUpdate(t, pose, packet);
+    }
+
+    public abstract Pose2d internalUpdate (double t, Pose2d pose, TelemetryPacket packet);
 
     public abstract Pose2d getPose(double t);
 

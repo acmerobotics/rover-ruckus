@@ -3,7 +3,7 @@ package com.acmerobotics.roverruckus.trajectory;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.path.PathBuilder;
 import com.acmerobotics.roadrunner.path.heading.ConstantInterpolator;
-import com.acmerobotics.roverruckus.opMode.auto.AutoFlag;
+import com.acmerobotics.roverruckus.opMode.auto.AutoAction;
 import com.acmerobotics.roverruckus.util.SuperArrayList;
 
 public class TrajectoryBuilder {
@@ -46,20 +46,30 @@ public class TrajectoryBuilder {
         return this;
     }
 
+    public TrajectoryBuilder addAction (double t, AutoAction action) {
+        trajectories.get(-1).addAction(t, action);
+        return this;
+    }
+
+    public TrajectoryBuilder addActionOnStart (AutoAction action) {
+        trajectories.get(-1).addAction(0, action);
+        return this;
+    }
+
+    public TrajectoryBuilder addActionOnCompletion (AutoAction action) {
+        trajectories.get(-1).addActionOnCompletion(action);
+        return this;
+    }
+
     private void newPath() {
         if (added) trajectories.add(new SplineTrajectory(currentPath.build()));
         added = false;
         currentPath = new PathBuilder(lastWaypoint.getExit());
     }
 
-    public TrajectoryBuilder addFlag(AutoFlag flag) {
-        trajectories.get(-1).addFlag(flag);
-        return this;
-
-    }
-
     public SuperArrayList<Trajectory> build() {
         newPath();
         return trajectories;
     }
+
 }

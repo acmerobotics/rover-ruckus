@@ -9,6 +9,8 @@ import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.vision.GoldLocation;
 
 import org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.io.FileWriter;
