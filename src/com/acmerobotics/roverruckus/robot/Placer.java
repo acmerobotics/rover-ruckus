@@ -3,6 +3,8 @@ package com.acmerobotics.roverruckus.robot;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -21,24 +23,16 @@ public class Placer extends Subsystem {
     public static double intakeOpen = .4;
     public static double intakeClose = .7;
 
-    public static double colorThreshold = 1.5;
-    public static double distanceThreshold = 6;
-
-    public static int delay = 500;
-
     private ColorSensor frontColor, backColor;
-    private DistanceSensor frontDistance, backDistance;
+    private DigitalChannel beamBreak;
 
     private Servo armServo, gateServo, intakeServo;
 
-//    private DcMotor intakeMotor;
+    private DcMotor intakeMotor;
 
-    private boolean firstIn = false;
-    private boolean secondIn = false;
     private boolean firstOut = false;
     private boolean secondOut = false;
 
-    private long waitTime = 0;
     private boolean enabled = true;
 
     private boolean intaking = true;
@@ -53,14 +47,12 @@ public class Placer extends Subsystem {
     public Placer(HardwareMap map) {
         this.frontColor = map.colorSensor.get("frontSensor");
         this.backColor = map.colorSensor.get("backSensor");
-        this.frontDistance = map.get(DistanceSensor.class, "frontSensor");
-        this.backDistance = map.get(DistanceSensor.class, "backSensor");
 
         this.armServo = map.servo.get("diverter");
         this.gateServo = map.servo.get("spacer");
         this.intakeServo = map.servo.get("gate");
 
-//        this.intakeMotor = map.dcMotor.get("intakeMotor");
+        this.intakeMotor = map.dcMotor.get("intakeMotor");
 
 
         armServo.setPosition(armOpen);
@@ -70,12 +62,8 @@ public class Placer extends Subsystem {
 
     @Override
     public void update(TelemetryPacket packet) {
-        packet.put("enabled", enabled);
-        if (!enabled) return;
-    }
 
-    private Mineral getMineral(ColorSensor sensor, DistanceSensor distanceSensor) {
-        return Mineral.NONE;
+        if (!enabled) return;
     }
 
     public void releaseFirst() {
@@ -89,16 +77,13 @@ public class Placer extends Subsystem {
     }
 
     public void reset() {
-        firstIn = false;
-        secondIn = false;
         firstOut = false;
         secondOut = false;
         gateServo.setPosition(gateOpen);
         armServo.setPosition(armOpen);
-//        intakeServo.setPosition(intakeOpen);
+        intakeServo.setPosition(intakeOpen);
         enabled = false;
-//        intakeMotor.setPower(0);
-
+        intakeMotor.setPower(0);
     }
 
     public void setEnabled(boolean enabled) {
@@ -133,6 +118,7 @@ public class Placer extends Subsystem {
     public void openIntake() {
         intakeServo.setPosition(intakeOpen);
     }
+
     public void openArm () {
         armServo.setPosition(armOpen);
     }
