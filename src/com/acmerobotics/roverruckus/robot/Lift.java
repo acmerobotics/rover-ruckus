@@ -63,8 +63,9 @@ public class Lift extends Subsystem {
     public static int LOWER_WAIT_TIME = 1000;
 
     private DcMotorEx motor1, motor2;
-    private Servo marker, ratchet, dump;
+    private Servo ratchet, dump;
     private SharpDistanceSensor distance;
+    private DigitalChannel sensorLatch, sensorCarriage, sensorFrame;
     private boolean ratchetEngaged = true;
 
     private double offset;
@@ -112,10 +113,12 @@ public class Lift extends Subsystem {
         motor2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         setPosition(0);
 
-        ratchet = robot.getServo("ratchet");
-        dump = robot.getServo("dump");
-        marker = robot.getServo("marker");
         distance = new SharpDistanceSensor(robot.getAnalogInput(0, 0)); //todo check this port
+        ratchet = hardwareMap.get(Servo.class, "ratchet");
+        dump = hardwareMap.get(Servo.class, "dump");
+        sensorLatch = hardwareMap.digitalChannel.get("sensorLatch");
+        sensorCarriage = hardwareMap.digitalChannel.get("sensorCarriage");
+        sensorFrame = hardwareMap.digitalChannel.get("sensorFrame");
 
         pidController = new PIDController(P, I, D);
 
@@ -191,7 +194,7 @@ public class Lift extends Subsystem {
                 break;
             case FIND_LATCH:
                 internalSetVelocity(FIND_LATCH_V);
-                if (!isSensor()) {
+                if (!sensorLatch.getState()) {
                     Log.i(Auto.TAG, "found the sensor");
                     liftMode = LiftMode.HOLD_POSITION;
                     internalSetVelocity(0);
@@ -266,6 +269,11 @@ public class Lift extends Subsystem {
         if (v <= 0 || !ratchetEngaged) internalSetVelocity(v);
     }
 
+    public void setPower (double power) {
+        disengageRatchet();
+        internalSetVelocity(power);
+    }
+
     private void internalSetVelocity(double v) {
         if (v != 0 && liftMode != LiftMode.HOLD_POSITION && !dumped) dumpMiddle();
         motor1.setPower(v);
@@ -324,11 +332,9 @@ public class Lift extends Subsystem {
     }
 
     public void markerUp() {
-        marker.setPosition(MARKER_UP);
     }
 
     public void markerDown() {
-        marker.setPosition(MARKER_DOWN);
     }
 
     @Override
@@ -338,6 +344,18 @@ public class Lift extends Subsystem {
 
     public boolean isSensor() {
         return robot.getDigitalPort(0,0); //todo check this port
+    }
+
+    public boolean isAtLatch() {
+        return !sensorLatch.getState();
+    }
+
+    public boolean isAtBottom() {
+        return !(sensorFrame.getState() && sensorCarriage.getState());
+    }
+
+    public boolean frameIsAtBottom() {
+        return !sensorFrame.getState();
     }
 
     public void findLatch() {
