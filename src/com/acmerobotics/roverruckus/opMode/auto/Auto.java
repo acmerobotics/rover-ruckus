@@ -3,16 +3,13 @@ package com.acmerobotics.roverruckus.opMode.auto;
 import android.media.MediaPlayer;
 import android.util.Log;
 
-import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roverruckus.robot.Robot;
 import com.acmerobotics.roverruckus.robot.RobotState;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.vision.GoldLocation;
-import com.acmerobotics.roverruckus.vision.SamplingVision;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-import org.firstinspires.ftc.robotcontroller.internal.CameraFrameGrabber;
 import org.firstinspires.ftc.teamcode.R;
 
 import java.util.ArrayList;
@@ -35,15 +32,12 @@ public class Auto extends LinearOpMode {
             Log.e(TAG, "error playing media: " + e.getMessage());
         }
 
-        SamplingVision.enable();
         RobotState state = new RobotState(hardwareMap.appContext);
 
         waitForStart();
 
-        CameraFrameGrabber.getInstance().setOverlay(SamplingVision.processFrame(CameraFrameGrabber.getInstance().getFrame()));
-        GoldLocation location = SamplingVision.getLocation();
+        GoldLocation location = GoldLocation.RIGHT;
         Log.i(TAG, location.toString());
-        SamplingVision.disable();
         AutoPaths autoPaths = new AutoPaths(location, robot.config.getStartLocation(), robot.config.getSampleBoth());
         ArrayList<Trajectory> trajectories = autoPaths.paths();
 
