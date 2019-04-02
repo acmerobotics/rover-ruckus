@@ -268,6 +268,11 @@ public class Lift extends Subsystem {
         if (v <= 0 || !ratchetEngaged) internalSetVelocity(v);
     }
 
+    public void setPower (double power) {
+        disengageRatchet();
+        internalSetVelocity(power);
+    }
+
     private void internalSetVelocity(double v) {
         if (v != 0 && liftMode != LiftMode.HOLD_POSITION && !dumped) dumpMiddle();
         motor1.setPower(v);
@@ -338,6 +343,18 @@ public class Lift extends Subsystem {
 
     public boolean isSensor() {
         return sensorLatch.getState();
+    }
+
+    public boolean isAtLatch() {
+        return !sensorLatch.getState();
+    }
+
+    public boolean isAtBottom() {
+        return !(sensorFrame.getState() && sensorCarriage.getState());
+    }
+
+    public boolean frameIsAtBottom() {
+        return !sensorFrame.getState();
     }
 
     public void findLatch() {
