@@ -62,9 +62,9 @@ public class Lift extends Subsystem {
     public static int LOWER_WAIT_TIME = 1000;
 
     private DcMotorEx motor1, motor2;
-    private Servo marker, ratchet, dump;
+    private Servo ratchet, dump;
     private SharpDistanceSensor distance;
-    private DigitalChannel liftSensor;
+    private DigitalChannel sensorLatch, sensorCarriage, sensorFrame;
     private boolean ratchetEngaged = true;
 
     private double offset;
@@ -114,9 +114,10 @@ public class Lift extends Subsystem {
 
         ratchet = hardwareMap.get(Servo.class, "ratchet");
         dump = hardwareMap.get(Servo.class, "dump");
-        marker = hardwareMap.get(Servo.class, "marker");
         distance = new SharpDistanceSensor(hardwareMap.analogInput.get("dist"));
-        liftSensor = hardwareMap.digitalChannel.get("liftSensor");
+        sensorLatch = hardwareMap.digitalChannel.get("sensorLatch");
+        sensorCarriage = hardwareMap.digitalChannel.get("sensorCarriage");
+        sensorFrame = hardwareMap.digitalChannel.get("sensorFrame");
 
         pidController = new PIDController(P, I, D);
 
@@ -192,7 +193,7 @@ public class Lift extends Subsystem {
                 break;
             case FIND_LATCH:
                 internalSetVelocity(FIND_LATCH_V);
-                if (!liftSensor.getState()) {
+                if (!sensorLatch.getState()) {
                     Log.i(Auto.TAG, "found the sensor");
                     liftMode = LiftMode.HOLD_POSITION;
                     internalSetVelocity(0);
@@ -325,11 +326,9 @@ public class Lift extends Subsystem {
     }
 
     public void markerUp() {
-        marker.setPosition(MARKER_UP);
     }
 
     public void markerDown() {
-        marker.setPosition(MARKER_DOWN);
     }
 
     @Override
@@ -338,7 +337,7 @@ public class Lift extends Subsystem {
     }
 
     public boolean isSensor() {
-        return liftSensor.getState();
+        return sensorLatch.getState();
     }
 
     public void findLatch() {
