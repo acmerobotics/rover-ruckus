@@ -21,7 +21,6 @@ public class TeleOp extends LinearOpMode {
         stickyGamepad1 = new StickyGamepad(gamepad1);
         stickyGamepad2 = new StickyGamepad(gamepad2);
         transform = new JoystickTransform();
-        robot.lift.placer.setEnabled(false);
         robot.lift.setAsynch(false);
 
         boolean liftRaised = false;
@@ -53,7 +52,6 @@ public class TeleOp extends LinearOpMode {
 
             //lift positions
             if (gamepad2.dpad_up) {
-                robot.lift.placer.setEnabled(false);
                 robot.lift.liftTop();
                 robot.lift.placer.closeIntake();
                 robot.lift.placer.openGate();
@@ -72,7 +70,6 @@ public class TeleOp extends LinearOpMode {
 
             //intake
             robot.intake.setIntakePower(gamepad2.left_trigger - gamepad2.right_trigger);
-            if (gamepad2.left_trigger > .1) robot.lift.placer.setEnabled(true);
 
             if (stickyGamepad1.a) robot.intake.groundIntakererOut();
             else if (stickyGamepad1.b) robot.intake.groundIntakererIn();

@@ -33,7 +33,7 @@ public class Lift extends Subsystem {
     public static double MASS_GOLD = .05;
     public static double MASS_SILVER = .03;
     public static double G = 386;
-    public static double P = 0;
+    public static double P = 1;
     public static double I = 0;
     public static double D = 0;
     public static double V = 15;
@@ -150,7 +150,7 @@ public class Lift extends Subsystem {
         switch (liftMode) {
             case RUN_TO_POSITION:
                 double t = (System.currentTimeMillis() - startTime) / 1000.0;
-                if (!gateArmClosed && getPosition() > LIFT_LATCH) {
+                if (!gateArmClosed && getPosition() > LIFT_LATCH && !placer.isBusy()) {
                     placer.closeArm();
                     gateArmClosed = true;
                 }
@@ -311,6 +311,7 @@ public class Lift extends Subsystem {
 
     public void liftTop() {
         goToPosition(LIFT_SCORE);
+        placer.openGate();
         setDumpOnCompletion(DUMP_MIDDLE);
         closePlacerOnCompletion = true;
         gateArmClosed = false;
@@ -320,7 +321,6 @@ public class Lift extends Subsystem {
     public void liftBottom() {
         goToPosition(LIFT_DOWN);
         setDumpOnCompletion(DUMP_DOWN);
-        placer.reset();
         openGateOnCompletion = true;
         findBottomOnCompletion = true;
         dumped = false;
@@ -354,7 +354,7 @@ public class Lift extends Subsystem {
 
     @Override
     public boolean isBusy() {
-        return !asynch && Arrays.asList(LiftMode.RUN_TO_POSITION, LiftMode.LOWERING, LiftMode.FIND_LATCH).contains(liftMode);
+        return placer.isBusy() || (!asynch && Arrays.asList(LiftMode.RUN_TO_POSITION, LiftMode.LOWERING, LiftMode.FIND_LATCH).contains(liftMode));
     }
 
     public boolean isSensor() {

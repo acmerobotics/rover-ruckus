@@ -2,6 +2,7 @@ package com.acmerobotics.roverruckus.robot;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roverruckus.util.ColorSpace;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -21,23 +22,19 @@ public class Placer extends Subsystem {
     public static double gateOpen = .4;
     public static double gateClose = .1;
 
-    public static double intakeOpen = .4;
-    public static double intakeClose = .7;
+    public static double intakeOpen = .8;
+    public static double intakeClose = .4;
+
+    public static double RELEASE_DELAY = 1000;
 
     private ColorSensor frontColor, backColor;
-    private DistanceSensor frontDistance, backDistance;
-    private AnalogInput beamBreak;
 
     private Servo armServo, gateServo, intakeServo;
 
-    private boolean firstIn = false;
-    private boolean secondIn = false;
     private boolean firstOut = false;
-    private boolean secondOut = false;
 
-    private boolean enabled = true;
-
-    private boolean intaking = true;
+    private boolean release = false;
+    private double second = 0;
 
     public enum Mineral {
         GOLD,
@@ -53,7 +50,6 @@ public class Placer extends Subsystem {
         this.armServo = map.servo.get("diverter");
         this.gateServo = map.servo.get("spacer");
         this.intakeServo = map.servo.get("gate");
-        beamBreak = robot.getAnalogInput(0, 1);
 
         armServo.setPosition(armOpen);
         gateServo.setPosition(gateOpen);
@@ -62,38 +58,42 @@ public class Placer extends Subsystem {
 
     @Override
     public void update(TelemetryPacket packet) {
-        packet.put("enabled", enabled);
-        packet.put("beamBreak", beamBreak.getVoltage());
-        if (!enabled) return;
-
-
+        if (release && System.currentTimeMillis() >= second) {
+            setArmPosition(getColor(backColor));
+            gateServo.setPosition(gateOpen);
+            release = false;
+        } else if (release) {
+            setArmPosition(getColor(frontColor));
+            gateServo.setPosition(gateClose);
+        }
     }
 
-    public void releaseFirst() {
-        firstOut = true;
-        enabled = true;
+    public void release() {
+        release = true;
+        second = System.currentTimeMillis() + RELEASE_DELAY;
     }
 
-    public void releaseSecond() {
-        secondOut = true;
-        enabled = true;
-    }
 
     public void reset() {
         firstOut = false;
-        secondOut = false;
         gateServo.setPosition(gateOpen);
         armServo.setPosition(armOpen);
         intakeServo.setPosition(intakeOpen);
-        enabled = false;
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
 
     public void closeArm() {
         armServo.setPosition(armClose);
+    }
+
+    public void setArmPosition (Mineral mineral) {
+        armServo.setPosition(mineral == Mineral.SILVER ? armDivert : armOpen);
+    }
+
+    public Mineral getColor (ColorSensor sensor) {
+        int[] lab = new int[3];
+        ColorSpace.rgb2lab(sensor.red(), sensor.green(), sensor.blue(), lab);
+        return lab[1] <= 0 ? Mineral.SILVER : Mineral.GOLD;
     }
 
     public void releaseGold() {
@@ -101,7 +101,6 @@ public class Placer extends Subsystem {
         if (firstOut) gateServo.setPosition(gateOpen);
         else gateServo.setPosition(gateClose);
         firstOut = true;
-        intaking = false;
 
     }
 
@@ -110,7 +109,6 @@ public class Placer extends Subsystem {
         if (firstOut) gateServo.setPosition(gateOpen);
         else gateServo.setPosition(gateClose);
         firstOut = true;
-        intaking = false;
     }
 
     public void closeIntake() {
@@ -133,7 +131,8 @@ public class Placer extends Subsystem {
         gateServo.setPosition(gateOpen);
     }
 
-//    public void setIntakePower(double power) {
-//        intakeMotor.setPower(power);
-//    }
+    @Override
+    public boolean isBusy() {
+        return release;
+    }
 }

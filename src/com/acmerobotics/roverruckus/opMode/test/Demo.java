@@ -44,7 +44,6 @@ public class Demo extends LinearOpMode {
             robot.intake.setIntakePower(gamepad1.left_trigger - gamepad1.right_trigger);
 
             if (stickyGamepad1.dpad_up) {
-                robot.lift.placer.setEnabled(false);
                 robot.lift.liftTop();
                 robot.lift.placer.closeIntake();
             }

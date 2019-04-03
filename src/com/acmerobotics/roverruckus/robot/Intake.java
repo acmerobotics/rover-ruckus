@@ -9,6 +9,7 @@ import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
 import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
 import com.acmerobotics.roverruckus.util.PIDController;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -35,6 +36,8 @@ public class Intake extends Subsystem {
     public static double I = 0;
     public static double D = 0;
     public static double RAKE_RETRACT_DISTANCE = 6.5;
+    public static double EXPEL_DURATION = 1000;
+    public static double DEBOUNCE_TIME = 500;
 
     private DcMotorEx rakeMotor, intakeMotor;
 
@@ -49,6 +52,12 @@ public class Intake extends Subsystem {
     private double offset = 0;
     private double targetX = 0;
 
+    private AnalogInput beamBreak;
+    private boolean intaking = false;
+    private boolean needStop = false;
+    private long stopTime;
+    private double lastLow = 0;
+
     public Intake(Robot robot, HardwareMap map) {
 
         rakeMotor = robot.getMotor("rakeMotor");
@@ -58,6 +67,8 @@ public class Intake extends Subsystem {
 
         intakeMotor = robot.getMotor("intakeMotor");
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        beamBreak = robot.getAnalogInput(0, 1);
 
         rakeServo = robot.getServo("rake");
         groundIntakerer = robot.getServo("ground");
@@ -76,6 +87,7 @@ public class Intake extends Subsystem {
     @Override
     public void update(TelemetryPacket packet) {
         packet.put("rakePosition", getPosition());
+        packet.put("beamBreak", beamBreak.getVoltage());
         Log.i(TAG, "position: " + getPosition());
         Log.i(TAG, "driver controlled: " + driverControled);
         Log.i(TAG, "complete" + profileComplete);
@@ -105,6 +117,23 @@ public class Intake extends Subsystem {
             Log.i(TAG, "correction: " + correction);
             packet.put("command", targetV + correction);
             rakeMotor.setVelocity((targetV + correction) / WINCH_RADIUS, AngleUnit.RADIANS);
+        }
+
+        if (intaking) {
+            if (beamBreak.getVoltage() > 500) lastLow = System.currentTimeMillis();
+            if (beamBreak.getVoltage() < 500 && lastLow + DEBOUNCE_TIME <= System.currentTimeMillis()) {
+                intaking = false;
+                intakeMotor.setPower(-1);
+                needStop = true;
+                stopTime = System.currentTimeMillis() + (long) EXPEL_DURATION;
+            }
+        }
+
+        if (needStop) {
+            if (stopTime <= System.currentTimeMillis()) {
+                needStop = false;
+                intakeMotor.setPower(0);
+            }
         }
     }
 
@@ -169,7 +198,7 @@ public class Intake extends Subsystem {
 
     @Override
     public boolean isBusy() {
-        return !profileComplete;
+        return !profileComplete || intaking;
     }
 
     public double getOffset() {
@@ -180,6 +209,10 @@ public class Intake extends Subsystem {
         this.offset = 0;
     }
 
+    public void intake () {
+        intaking = true;
+        intakeMotor.setPower(1);
+    }
 
 }
 
