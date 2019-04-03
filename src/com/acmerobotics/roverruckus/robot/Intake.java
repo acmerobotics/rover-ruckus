@@ -25,6 +25,8 @@ public class Intake extends Subsystem {
     public static final String TAG = "intake";
     public static double RAKE_UP = .8;
     public static double RAKE_DOWN = .35;
+    public static double GROUND_INTAKERER_IN = .5;
+    public static double GROUND_INTAKERER_OUT = .5;
     public static double WINCH_RADIUS = .5;
     public static double MAX_V = 30;
     public static double MAX_A = 30;
@@ -36,7 +38,7 @@ public class Intake extends Subsystem {
 
     private DcMotorEx rakeMotor, intakeMotor;
 
-    private Servo rakeServo;
+    private Servo rakeServo, groundIntakerer;
 
     private boolean driverControled = true;
     private boolean profileComplete = true;
@@ -58,8 +60,10 @@ public class Intake extends Subsystem {
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         rakeServo = robot.getServo("rake");
+        groundIntakerer = robot.getServo("ground");
         setPosition(0);
         controller = new PIDController(P, I, D);
+        driverControled = true;
         rakeUp();
 
     }
@@ -75,7 +79,7 @@ public class Intake extends Subsystem {
         Log.i(TAG, "position: " + getPosition());
         Log.i(TAG, "driver controlled: " + driverControled);
         Log.i(TAG, "complete" + profileComplete);
-        if (driverControled && armPower != 0) {
+        if (driverControled) {
             rakeMotor.setPower(armPower);
             targetX = getPosition();
 
@@ -153,6 +157,14 @@ public class Intake extends Subsystem {
         rakeUp();
         goToPosition(RAKE_RETRACT_DISTANCE);
         Log.e(TAG, "retracting");
+    }
+
+    public void groundIntakererIn () {
+        groundIntakerer.setPosition(GROUND_INTAKERER_IN);
+    }
+
+    public void groundIntakererOut () {
+        groundIntakerer.setPosition(GROUND_INTAKERER_OUT);
     }
 
     @Override

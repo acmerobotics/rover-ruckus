@@ -10,13 +10,12 @@ import com.acmerobotics.roadrunner.profile.MotionState;
 import com.acmerobotics.roverruckus.hardware.SharpDistanceSensor;
 import com.acmerobotics.roverruckus.opMode.auto.Auto;
 import com.acmerobotics.roverruckus.util.PIDController;
-import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.sun.tools.javac.file.ZipFileIndexArchive;
 
 import java.util.Arrays;
 
@@ -26,13 +25,18 @@ import java.util.Arrays;
 
 @Config
 public class Lift extends Subsystem {
-    public static double F_UP = 1 / 11.873;
-    public static double F_DOWN = F_UP / 2;
-    private double F = F_UP;
-    public static double P = .5;
+    public static double K_V = 0.0643202688898; //power / in/sec
+    public static double K_STATIC = 0.118777073737;
+    public static double K_A = 0.000127390384279;
+    public static double MASS_CARTRIGE = .75;
+    public static double MASS_FRAME = .75;
+    public static double MASS_GOLD = .05;
+    public static double MASS_SILVER = .03;
+    public static double G = 386;
+    public static double P = 0;
     public static double I = 0;
     public static double D = 0;
-    public static double V = 20;
+    public static double V = 15;
     public static double A = 30;
     public static double J = 30;
     public static double LOWER_P = -.5;
@@ -45,8 +49,6 @@ public class Lift extends Subsystem {
     public static double DUMP_UP = .15;
     public static double RATCHET_ENGAGE = .5;
     public static double RATCHET_DISENGAGE = .85;
-    public static double MARKER_UP = .8;
-    public static double MARKER_DOWN = .5;
 
     public static double LIFT_LATCH = 14.5;
     public static double LIFT_SCORE = 25;
@@ -56,16 +58,14 @@ public class Lift extends Subsystem {
     public static double LIFT_CLEARANCE = 10.25;
     public static double LIFT_DOWN = .5;
 
-    public static double FIND_LATCH_V = .3;
+    public static double CALIBRATE_V = .3;
 
-    public static double K_STATIC = -.3;
     public static double CONTACT_DISTANCE = .4;
     public static int LOWER_WAIT_TIME = 1000;
 
     private DcMotorEx motor1, motor2;
     private Servo ratchet, dump;
     private SharpDistanceSensor distance;
-    private DigitalChannel sensorLatch, sensorCarriage, sensorFrame;
     private boolean ratchetEngaged = true;
 
     private double offset;
@@ -85,6 +85,7 @@ public class Lift extends Subsystem {
     private boolean openGateOnCompletion = false;
     private boolean emergencyDumpOnCompletion = false;
     private boolean findLatchOnCompletion = false;
+    private boolean findBottomOnCompletion = false;
     private boolean asynch = false;
 
     private enum LiftMode {
@@ -92,7 +93,8 @@ public class Lift extends Subsystem {
         DRIVER_CONTROLLED,
         HOLD_POSITION,
         LOWERING,
-        FIND_LATCH
+        FIND_LATCH,
+        FIND_BOTTOM
     }
 
     private LiftMode liftMode = LiftMode.DRIVER_CONTROLLED;
@@ -116,13 +118,10 @@ public class Lift extends Subsystem {
         distance = new SharpDistanceSensor(robot.getAnalogInput(0, 0)); //todo check this port
         ratchet = hardwareMap.get(Servo.class, "ratchet");
         dump = hardwareMap.get(Servo.class, "dump");
-        sensorLatch = hardwareMap.digitalChannel.get("sensorLatch");
-        sensorCarriage = hardwareMap.digitalChannel.get("sensorCarriage");
-        sensorFrame = hardwareMap.digitalChannel.get("sensorFrame");
 
         pidController = new PIDController(P, I, D);
 
-        placer = new Placer(hardwareMap);
+        placer = new Placer(robot, hardwareMap);
 
         markerDown();
         engageRatchet();
@@ -144,6 +143,8 @@ public class Lift extends Subsystem {
         packet.put("position", getPosition());
         packet.put("ratchet", ratchetEngaged);
         packet.put("distance", distance.getUnscaledDistance());
+
+        placer.update(packet);
 
 
         switch (liftMode) {
@@ -167,7 +168,7 @@ public class Lift extends Subsystem {
                 double error = getPosition() - target.getX();
                 packet.put("error", error);
                 double correction = pidController.update(error);
-                double feedForward = F * target.getV();
+                double feedForward = getFeedForward(target, getMass());
                 internalSetVelocity(feedForward - correction);
                 break;
             case HOLD_POSITION:
@@ -193,16 +194,25 @@ public class Lift extends Subsystem {
                     internalSetVelocity(-correction);
                 break;
             case FIND_LATCH:
-                internalSetVelocity(FIND_LATCH_V);
-                if (!sensorLatch.getState()) {
+                internalSetVelocity(CALIBRATE_V);
+                if (isAtLatch()) {
                     Log.i(Auto.TAG, "found the sensor");
                     liftMode = LiftMode.HOLD_POSITION;
                     internalSetVelocity(0);
                     targetPosition = getPosition();
                     pidController = new PIDController(P, I, D);
                 }
-
-
+                break;
+            case FIND_BOTTOM:
+                internalSetVelocity(-CALIBRATE_V);
+                if (isAtBottom()) {
+                    Log.i(Robot.TAG, "found the bottom");
+                    liftMode = LiftMode.HOLD_POSITION;
+                    internalSetVelocity(0);
+                    targetPosition = 0;
+                    setPosition(0);
+                    pidController = new PIDController(P, I, D);
+                }
         }
 
     }
@@ -215,7 +225,10 @@ public class Lift extends Subsystem {
     private void completionDump() {
         if (moveDumpOnCompletion) dump.setPosition(dumpPositionOnCompletion);
         if (closePlacerOnCompletion) placer.closeArm();
-        if (openGateOnCompletion) placer.openIntake();
+        if (openGateOnCompletion) {
+            placer.openIntake();
+            placer.closeGate();
+        }
         if (emergencyDumpOnCompletion) {
             placer.releaseGold();
             placer.releaseGold();
@@ -224,6 +237,8 @@ public class Lift extends Subsystem {
             liftMode = LiftMode.FIND_LATCH;
         }
         if (dumpPositionOnCompletion == DUMP_UP) dumped = true;
+        if (findBottomOnCompletion) liftMode = LiftMode.FIND_BOTTOM;
+        findBottomOnCompletion = false;
         openGateOnCompletion = false;
         moveDumpOnCompletion = false;
         closePlacerOnCompletion = false;
@@ -243,8 +258,6 @@ public class Lift extends Subsystem {
 
     public void goToPosition(double position) {
         pidController = new PIDController(P, I, D);
-        if (position > getPosition()) F = F_UP;
-        else F = F_DOWN;
         profile = MotionProfileGenerator.generateSimpleMotionProfile(
                 new MotionState(getPosition(), 0, 0, 0),
                 new MotionState(position, 0, 0, 0),
@@ -266,6 +279,7 @@ public class Lift extends Subsystem {
         closePlacerOnCompletion = false;
         openGateOnCompletion = false;
         emergencyDumpOnCompletion = false;
+        findBottomOnCompletion = false;
         if (v <= 0 || !ratchetEngaged) internalSetVelocity(v);
     }
 
@@ -275,7 +289,7 @@ public class Lift extends Subsystem {
     }
 
     private void internalSetVelocity(double v) {
-        if (v != 0 && liftMode != LiftMode.HOLD_POSITION && !dumped) dumpMiddle();
+        if (v != 0 && liftMode != LiftMode.HOLD_POSITION && !dumped && liftMode != LiftMode.FIND_BOTTOM) dumpMiddle();
         motor1.setPower(v);
         motor2.setPower(v);
     }
@@ -308,6 +322,7 @@ public class Lift extends Subsystem {
         setDumpOnCompletion(DUMP_DOWN);
         placer.reset();
         openGateOnCompletion = true;
+        findBottomOnCompletion = true;
         dumped = false;
     }
 
@@ -347,15 +362,15 @@ public class Lift extends Subsystem {
     }
 
     public boolean isAtLatch() {
-        return !sensorLatch.getState();
+        return !robot.getDigitalPort(0,3); //// TODO: check
     }
 
     public boolean isAtBottom() {
-        return !(sensorFrame.getState() && sensorCarriage.getState());
+        return !robot.getDigitalPort(0, 5) && !robot.getDigitalPort(0, 7); //todo check
     }
 
     public boolean frameIsAtBottom() {
-        return !sensorFrame.getState();
+        return !robot.getDigitalPort(0, 5);
     }
 
     public void findLatch() {
@@ -379,6 +394,18 @@ public class Lift extends Subsystem {
 
     public void setOffset(double offset) {
         this.offset = offset;
+    }
+
+    private double getFeedForward (MotionState state, double mass) {
+        double ff = K_V * state.getV() + K_A * mass * (state.getA() - G);
+        if (Math.abs(ff) > 1e-4) ff +=  Math.copySign(K_STATIC, ff);
+        return ff;
+    }
+
+    private double getMass () {
+        double mass = MASS_CARTRIGE;
+        if (!frameIsAtBottom()) mass += MASS_FRAME;
+        return mass;
     }
 }
 

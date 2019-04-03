@@ -36,8 +36,11 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 
 public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarningSource {
+
+    public static final String TAG = "RobotLog";
 
     public MecanumDrive drive;
     public Lift lift;
@@ -46,6 +49,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
 
     private final Map<DcMotorController, LynxModuleIntf> hubs;
     private final Map<LynxModuleIntf, LynxGetBulkInputDataResponse> responses;
+    private LynxModuleIntf[] hubsByIndex = new LynxModuleIntf[2];
     private boolean updated = false;
 
     private OpModeManagerImpl opModeManager;
@@ -100,6 +104,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
             hubs.put(
                     map.get(DcMotorController.class, "hub1"),
                     map.get(LynxModuleIntf.class, "hub1"));
+            hubsByIndex[0] = map.get(LynxModuleIntf.class, "hub1");
         } catch (Exception e) {
             telemetryLines.add("problem with hub1");
         }
@@ -108,6 +113,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
             hubs.put(
                     map.get(DcMotorController.class, "hub2"),
                     map.get(LynxModuleIntf.class, "hub2"));
+            hubsByIndex[1] = map.get(LynxModuleIntf.class, "hub2");
         } catch (Exception e) {
             telemetryLines.add("problem with hub2");
         }
@@ -168,12 +174,18 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
                 responses.put(hub, command.sendReceive());
                 updated = true;
             } catch (Exception e) {
-                Log.e("get bulk data error", e.getMessage());
+                try {
+                    Log.e(TAG,  "get bulk data error");
+                    Log.e(TAG, e.getLocalizedMessage());
+                } catch (NullPointerException npe) {
+                    Log.e(TAG, "this is really funny");
+                }
                 updated = false;
             }
         }
 
         telemetry.put("hubs updated", updated);
+        if (updated) Log.i(TAG, "hardware updated");
     }
 
     public int getEncoderPosition(DcMotor motor) {
@@ -186,14 +198,14 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     public boolean getDigitalPort(int hub, int port) {
         if (!updated) return false;
         synchronized (responses) {
-            return responses.get(hub).getDigitalInput(port);
+            return responses.get(hubsByIndex[hub]).getDigitalInput(port);
         }
     }
 
     public int getAnalogPort(int hub, int port) {
         if (!updated) return 0;
         synchronized (responses) {
-            return responses.get(hub).getAnalogInput(port);
+            return responses.get(hubsByIndex[hub]).getAnalogInput(port);
         }
     }
 

@@ -56,6 +56,7 @@ public class TeleOp extends LinearOpMode {
                 robot.lift.placer.setEnabled(false);
                 robot.lift.liftTop();
                 robot.lift.placer.closeIntake();
+                robot.lift.placer.openGate();
             }
 
             if (gamepad2.dpad_left) {
@@ -72,6 +73,9 @@ public class TeleOp extends LinearOpMode {
             //intake
             robot.intake.setIntakePower(gamepad2.left_trigger - gamepad2.right_trigger);
             if (gamepad2.left_trigger > .1) robot.lift.placer.setEnabled(true);
+
+            if (stickyGamepad1.a) robot.intake.groundIntakererOut();
+            else if (stickyGamepad1.b) robot.intake.groundIntakererIn();
 
             //rake
             robot.intake.setArmPower(gamepad1.left_trigger - gamepad1.right_trigger);
