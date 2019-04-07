@@ -24,10 +24,10 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 @Config
 public class Intake extends Subsystem {
     public static final String TAG = "intake";
-    public static double RAKE_UP = .8;
-    public static double RAKE_DOWN = .35;
-    public static double GROUND_INTAKERER_IN = .5;
-    public static double GROUND_INTAKERER_OUT = .5;
+    public static double RAKE_UP = .7;
+    public static double RAKE_DOWN = .24;
+    public static double GROUND_INTAKERER_IN = .7;
+    public static double GROUND_INTAKERER_OUT = .1;
     public static double WINCH_RADIUS = .5;
     public static double MAX_V = 30;
     public static double MAX_A = 30;

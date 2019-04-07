@@ -63,7 +63,6 @@ public class TeleOp extends LinearOpMode {
 
             if (gamepad2.dpad_down) {
                 robot.lift.liftBottom();
-                robot.lift.placer.reset();
             }
 
             if (gamepad2.dpad_right) robot.lift.dumpUp();

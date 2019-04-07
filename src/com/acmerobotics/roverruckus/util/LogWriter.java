@@ -30,12 +30,12 @@ public class LogWriter {
         writeLine(headers);
     }
 
-    public void writeLine (String... tokens) {
+    public void writeLine (Object... tokens) {
         try {
             writer.write('\n');
             for (int i = 0; i < tokens.length; i++) {
                 if (i != 0) writer.write(", ");
-                writer.write(tokens[i]);
+                writer.write(tokens[i].toString());
             }
         } catch (Exception e) {
             Log.e(TAG, "error writing");

@@ -23,7 +23,7 @@ public class Placer extends Subsystem {
     public static double gateClose = .1;
 
     public static double intakeOpen = .8;
-    public static double intakeClose = .4;
+    public static double intakeClose = .27;
 
     public static double RELEASE_DELAY = 1000;
 
@@ -76,7 +76,7 @@ public class Placer extends Subsystem {
 
     public void reset() {
         firstOut = false;
-        gateServo.setPosition(gateOpen);
+        closeGate();
         armServo.setPosition(armOpen);
         intakeServo.setPosition(intakeOpen);
     }

@@ -61,8 +61,8 @@ public class MecanumDrive extends Subsystem {
 
     private DcMotor[] trackers;
     private static final String[] trackerNames = {
-            "liftMotor2",
-            "intakeMotor"
+            "intakeMotor",
+            "liftMotor2"
     };
 
     private static final Vector2d trackerCorrection = new Vector2d(3500, 0);
@@ -126,7 +126,8 @@ public class MecanumDrive extends Subsystem {
 
         trackers = new DcMotor[trackerNames.length];
         for (int i = 0; i < trackerNames.length; i++) {
-            trackers[i] = robot.getMotor(trackerNames[i]);
+//            trackers[i] = robot.getMotor(trackerNames[i]);
+            trackers[i] = hardwareMap.dcMotor.get(trackerNames[i]);
         }
 
         I2cDeviceSynch imuI2cDevice = LynxOptimizedI2cFactory.createLynxI2cDeviceSynch(hardwareMap.get(LynxModule.class, "hub1"), 0);
@@ -177,6 +178,21 @@ public class MecanumDrive extends Subsystem {
         }
     }
 
+    private void internalSetPowers(Pose2d v) {
+        for (int i = 0; i < motors.length; i++) {
+            Vector2d rotorVelocity = new Vector2d(
+                    v.getX() - v.getHeading() * wheelPositions[i].getY(),
+                    v.getY() + v.getHeading() * wheelPositions[i].getX()
+            );
+            double surfaceVelocity = rotorVelocity.dot(rotorDirections[i]);
+            motors[i].setPower(surfaceVelocity);
+        }
+    }
+
+    public void setPower(Pose2d p) {
+        internalSetPowers(p);
+    }
+
     /**
      * Set the robot velocity for open-loop control
      *
@@ -222,6 +238,8 @@ public class MecanumDrive extends Subsystem {
     @Override
     public void update(TelemetryPacket packet) {
         packet.put("mode", currentMode);
+        packet.put("trackingX", trackers[1].getCurrentPosition());
+        packet.put("trackingY", trackers[0].getCurrentPosition());
         if (estimatingPose) {
             updatePoseEstimate();
 //            drawPose(packet.fieldOverlay(), currentEstimatedPose, "red");
@@ -352,5 +370,10 @@ public class MecanumDrive extends Subsystem {
         }
     }
 
+    public void setRunMode (DcMotor.RunMode mode) {
+        for (DcMotorEx motor: motors) {
+            motor.setMode(mode);
+        }
+    }
 
 }

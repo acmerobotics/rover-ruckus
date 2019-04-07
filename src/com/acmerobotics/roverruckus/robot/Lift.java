@@ -17,6 +17,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.sun.tools.javac.file.ZipFileIndexArchive;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -44,9 +45,9 @@ public class Lift extends Subsystem {
     public static double LOWER_DISTANCE = .15;
     public static double LOWER_THRESHOLD = .05;
 
-    public static double DUMP_DOWN = .92;
-    public static double DUMP_MIDDLE = .65;
-    public static double DUMP_UP = .15;
+    public static double DUMP_DOWN = .8;
+    public static double DUMP_MIDDLE = .5;
+    public static double DUMP_UP = .05;
     public static double RATCHET_ENGAGE = .5;
     public static double RATCHET_DISENGAGE = .85;
 
@@ -79,15 +80,6 @@ public class Lift extends Subsystem {
 
     private double targetPosition;
 
-    private double dumpPositionOnCompletion = DUMP_MIDDLE;
-    private boolean moveDumpOnCompletion = false;
-    private boolean closePlacerOnCompletion = false;
-    private boolean openGateOnCompletion = false;
-    private boolean emergencyDumpOnCompletion = false;
-    private boolean findLatchOnCompletion = false;
-    private boolean findBottomOnCompletion = false;
-    private boolean asynch = false;
-
     private enum LiftMode {
         RUN_TO_POSITION,
         DRIVER_CONTROLLED,
@@ -104,6 +96,23 @@ public class Lift extends Subsystem {
     private boolean dumped = false;
 
     private Robot robot;
+
+    private interface CompletionAction {
+        void onCompletion();
+    }
+
+    private ArrayList<CompletionAction> actionsOnComplete;
+
+    private double dumpPositionOnCompletion = DUMP_MIDDLE;
+    private final CompletionAction dumpAction = () -> dump.setPosition(dumpPositionOnCompletion);
+    private final CompletionAction placerCloseAction = () -> placer.closeGate();
+    private final CompletionAction resetAction = () -> placer.reset();
+    private final CompletionAction eDumpAction = () -> placer.releaseGold();
+    private final CompletionAction findLatchAction = () -> liftMode = LiftMode.FIND_LATCH;
+    private final CompletionAction findBottomAction = () -> liftMode = LiftMode.FIND_BOTTOM;
+
+    private boolean asynch = false;
+
 
     public Lift(Robot robot, HardwareMap hardwareMap) {
         this.robot = robot;
@@ -127,6 +136,7 @@ public class Lift extends Subsystem {
         engageRatchet();
         dumpDown();
         placer.reset();
+        actionsOnComplete = new ArrayList<>();
     }
 
     public double getPosition() {
@@ -219,44 +229,23 @@ public class Lift extends Subsystem {
 
     private void setDumpOnCompletion(double position) {
         dumpPositionOnCompletion = position;
-        moveDumpOnCompletion = true;
+        addCompletionAction(dumpAction);
     }
 
     private void completionDump() {
-        if (moveDumpOnCompletion) dump.setPosition(dumpPositionOnCompletion);
-        if (closePlacerOnCompletion) placer.closeArm();
-        if (openGateOnCompletion) {
-            placer.openIntake();
-            placer.closeGate();
-        }
-        if (emergencyDumpOnCompletion) {
-            placer.releaseGold();
-            placer.releaseGold();
-        }
-        if (findLatchOnCompletion) {
-            liftMode = LiftMode.FIND_LATCH;
-        }
-        if (dumpPositionOnCompletion == DUMP_UP) dumped = true;
-        if (findBottomOnCompletion) liftMode = LiftMode.FIND_BOTTOM;
-        findBottomOnCompletion = false;
-        openGateOnCompletion = false;
-        moveDumpOnCompletion = false;
-        closePlacerOnCompletion = false;
-        emergencyDumpOnCompletion = false;
-        findLatchOnCompletion = false;
+        executeCompletionActions();
     }
 
     public void lower() {
         pidController = new PIDController(LOWER_P, 0, 0);
         disengageRatchet();
         dumpMiddle();
-        placer.reset();
         liftMode = LiftMode.LOWERING;
         lowerStartTime = System.currentTimeMillis();
         dumped = false;
     }
 
-    public void goToPosition(double position) {
+    public void goToPosition(double position, double v) {
         pidController = new PIDController(P, I, D);
         profile = MotionProfileGenerator.generateSimpleMotionProfile(
                 new MotionState(getPosition(), 0, 0, 0),
@@ -266,6 +255,11 @@ public class Lift extends Subsystem {
         startTime = System.currentTimeMillis();
         disengageRatchet();
         liftMode = LiftMode.RUN_TO_POSITION;
+        resetCompletionActions();
+    }
+
+    public void goToPosition (double position) {
+        goToPosition(position, 0);
     }
 
 
@@ -275,11 +269,7 @@ public class Lift extends Subsystem {
         if (getPosition() <= 0 && v < 0) return;
         if (!ratchetEngaged) v /= 2;
         liftMode = LiftMode.DRIVER_CONTROLLED;
-        moveDumpOnCompletion = false;
-        closePlacerOnCompletion = false;
-        openGateOnCompletion = false;
-        emergencyDumpOnCompletion = false;
-        findBottomOnCompletion = false;
+        resetCompletionActions();
         if (v <= 0 || !ratchetEngaged) internalSetVelocity(v);
     }
 
@@ -313,7 +303,7 @@ public class Lift extends Subsystem {
         goToPosition(LIFT_SCORE);
         placer.openGate();
         setDumpOnCompletion(DUMP_MIDDLE);
-        closePlacerOnCompletion = true;
+        addCompletionAction(placerCloseAction);
         gateArmClosed = false;
         dumped = false;
     }
@@ -321,8 +311,8 @@ public class Lift extends Subsystem {
     public void liftBottom() {
         goToPosition(LIFT_DOWN);
         setDumpOnCompletion(DUMP_DOWN);
-        openGateOnCompletion = true;
-        findBottomOnCompletion = true;
+        addCompletionAction(findBottomAction);
+        addCompletionAction(resetAction);
         dumped = false;
     }
 
@@ -331,6 +321,7 @@ public class Lift extends Subsystem {
         else if (getPosition() < LIFT_E_DUMP) {
             goToPosition(LIFT_E_DUMP);
             setDumpOnCompletion(DUMP_UP);
+            actionsOnComplete.add(eDumpAction);
         } else {
             dump.setPosition(DUMP_UP);
             dumped = true;
@@ -374,7 +365,7 @@ public class Lift extends Subsystem {
     }
 
     public void findLatch() {
-        findLatchOnCompletion = true;
+        addCompletionAction(findLatchAction);
         goToPosition(LIFT_FIND_LATCH_START);
     }
 
@@ -406,6 +397,19 @@ public class Lift extends Subsystem {
         double mass = MASS_CARTRIGE;
         if (!frameIsAtBottom()) mass += MASS_FRAME;
         return mass;
+    }
+
+    private void resetCompletionActions () {
+        actionsOnComplete.clear();
+    }
+
+    private void addCompletionAction (CompletionAction action) {
+        if (!actionsOnComplete.contains(action)) actionsOnComplete.add(action);
+    }
+
+    private void executeCompletionActions () {
+        for (CompletionAction action: actionsOnComplete) action.onCompletion();
+        dumped = dumpPositionOnCompletion == DUMP_UP && actionsOnComplete.contains(dumpAction);
     }
 }
 
