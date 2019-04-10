@@ -42,6 +42,7 @@ public class Intake extends Subsystem {
     public static double EXPEL_DURATION = 1000;
     public static double RAKE_DELAY_TIME = 500;
     public static double DEBOUNCE_TIME = 500;
+    public static double MAX_RAKE_EXTENSION = 32;
 
     private DcMotorEx rakeMotor, intakeMotor;
 
@@ -61,6 +62,7 @@ public class Intake extends Subsystem {
     private boolean needStop = false;
     private long stopTime;
     private double lastLow = 0;
+    private double intakeTimout;
 
     private Robot robot;
 
@@ -128,7 +130,7 @@ public class Intake extends Subsystem {
 
         if (intaking) {
             if (beamBreak.getVoltage() > 500) lastLow = System.currentTimeMillis();
-            if (beamBreak.getVoltage() < 500 && lastLow + DEBOUNCE_TIME <= System.currentTimeMillis()) {
+            if (beamBreak.getVoltage() < 500 && lastLow + DEBOUNCE_TIME <= System.currentTimeMillis() || System.currentTimeMillis() > intakeTimout) {
                 intaking = false;
                 intakeMotor.setPower(-1);
                 needStop = true;
@@ -144,7 +146,7 @@ public class Intake extends Subsystem {
         }
     }
 
-    private void goToPosition(double position) {
+    public void goToPosition(double position) {
         armProfile = MotionProfileGenerator.generateSimpleMotionProfile(
                 new MotionState(getPosition(), 0, 0, 0),
                 new MotionState(position, 0, 0, 0),
@@ -229,8 +231,13 @@ public class Intake extends Subsystem {
     }
 
     public void intake () {
+        intake(30);
+    }
+
+    public void intake (double timeout) {
         intaking = true;
         intakeMotor.setPower(1);
+        intakeTimout = System.currentTimeMillis() + timeout * 1000;
     }
 
 }

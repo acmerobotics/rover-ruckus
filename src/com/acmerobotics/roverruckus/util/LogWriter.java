@@ -27,7 +27,7 @@ public class LogWriter {
             Log.e(TAG, e.getLocalizedMessage());
         }
 
-        writeLine(headers);
+        writeLine((Object[]) headers);
     }
 
     public void writeLine (Object... tokens) {

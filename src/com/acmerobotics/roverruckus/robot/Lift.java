@@ -8,7 +8,6 @@ import com.acmerobotics.roadrunner.profile.MotionProfile;
 import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
 import com.acmerobotics.roverruckus.hardware.SharpDistanceSensor;
-import com.acmerobotics.roverruckus.opMode.auto.Auto;
 import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -211,7 +210,6 @@ public class Lift extends Subsystem {
             case FIND_LATCH:
                 internalSetVelocity(CALIBRATE_V * findLatchDirection);
                 if (isAtLatch()) {
-                    Log.i(Auto.TAG, "found the sensor");
                     liftMode = LiftMode.HOLD_POSITION;
                     internalSetVelocity(0);
                     targetPosition = getPosition();

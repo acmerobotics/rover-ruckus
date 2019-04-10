@@ -38,7 +38,7 @@ public class PointTurnTrajectory extends Trajectory {
     }
 
     @Override
-    public Pose2d update(double t, Pose2d pose, TelemetryPacket packet) {
+    public Pose2d internalUpdate(double t, Pose2d pose, TelemetryPacket packet) {
         if (t >= duration) complete = true;
         Pose2d targetState = getPose(t);
         Pose2d targetVelocity = new Pose2d(new Vector2d(), getV(t));

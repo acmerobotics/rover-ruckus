@@ -17,7 +17,7 @@ public class PartialTurnSplineTrajectory extends SplineTrajectory {
     }
 
     @Override
-    public Pose2d update(double t, Pose2d pose, TelemetryPacket packet) {
+    public Pose2d internalUpdate(double t, Pose2d pose, TelemetryPacket packet) {
         Vector2d pos = super.update(t, pose, packet).pos();
         double theta = turn.update(t, new Pose2d(loc, pose.getHeading()), packet).getHeading();
         return new Pose2d(pos, theta);

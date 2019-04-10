@@ -25,6 +25,9 @@ public class AutoPaths {
     public static double RELEASE_Y = 2;
     public static double RELEASE_THETA = -PI / 12;
 
+    public static final Vector2d RAKE_POSITION_CRATER = new Vector2d(60, -48);
+    public static final Vector2d RAKE_POSITION_DEPOT = new Vector2d(60, 60);
+
     private static final Pose2d RELEASE = new Pose2d(RELEASE_X, RELEASE_Y, RELEASE_THETA);
 
     private static final Waypoint START_CRATER = new Waypoint(new Pose2d(START_DIST, -START_DIST, -PI / 4), PI / 4);
@@ -40,7 +43,7 @@ public class AutoPaths {
             PI / 6),
             PI / 2, PI / 4);
 
-    private static final Waypoint MARKER_CRATER = new Waypoint(new Pose2d(60, 48, -PI/2), PI / 2, -PI / 2);
+    private static final Waypoint MARKER_CRATER = new Waypoint(new Pose2d(60, 24, PI/2), PI / 2, -PI / 2);
     private static final Waypoint MARKER_DEPOT = new Waypoint(new Pose2d(48, 60, -PI / 2), PI / 2, PI);
 
     private static final Waypoint PARK_CRATER = new Waypoint(new Pose2d(60, -17, -PI / 2),-PI/2);
@@ -97,7 +100,6 @@ public class AutoPaths {
     public SuperArrayList<Trajectory> startToRelease () {
         TrajectoryBuilder builder = getBuilder();
         lastPosition = release();
-
         return builder
                 .to(release())
                 .addActionOnCompletion(opMode.lowerLift)
@@ -107,11 +109,15 @@ public class AutoPaths {
     public SuperArrayList<Trajectory> toSample () {
         TrajectoryBuilder builder = getBuilder();
         lastPosition = sample();
-        return builder.to(sample()).build();
+        return builder.to(sample()).addActionOnStart(opMode.groundIntake).build();
     }
 
+//    public SuperArrayList<Trajectory> toMarker () {
+//
+//    }
+
     private TrajectoryBuilder getBuilder () {
-        return new TrajectoryBuilder(lastPosition);
+        return new TrajectoryBuilder(new Waypoint(opMode.getRobot().drive.getCurrentEstimatedPose(), lastPosition.getExit().getHeading()));
     }
 
 }

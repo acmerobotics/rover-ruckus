@@ -49,7 +49,7 @@ public class SplineTrajectory extends Trajectory {
     long lastupdate = 0;
 
     @Override
-    public synchronized Pose2d update(double t, Pose2d pose, TelemetryPacket packet) {
+    public synchronized Pose2d internalUpdate(double t, Pose2d pose, TelemetryPacket packet) {
         if (t >= duration) complete = true;
         Pose2d targetPose = path.get(axialProfile.get(t).getX());
         double theta = Angle.norm(path.deriv(axialProfile.get(t).getX()).pos().angle());

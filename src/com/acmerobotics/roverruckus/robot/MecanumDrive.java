@@ -10,7 +10,6 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.drive.Kinematics;
 import com.acmerobotics.roadrunner.drive.MecanumKinematics;
 import com.acmerobotics.roverruckus.hardware.LynxOptimizedI2cFactory;
-import com.acmerobotics.roverruckus.opMode.auto.Auto;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -168,7 +167,6 @@ public class MecanumDrive extends Subsystem {
         setMotorPIDF(P, I, D, F);
         setCurrentEstimatedPose(new Pose2d());
         lastUpdate = 0;
-        Log.i(Auto.TAG, "endOfInit: " + getCurrentEstimatedPose().toString());
 
     }
 
