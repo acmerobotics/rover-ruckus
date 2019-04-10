@@ -16,11 +16,11 @@ import android.graphics.Color;
 @Config
 public class Placer extends Subsystem {
     public static double armClose = .58;
-    public static double armDivert = .35;
+    public static double armDivert = .3;
     public static double armOpen = .08;
 
-    public static double gateOpen = .4;
-    public static double gateClose = .1;
+    public static double gateOpen = .51;
+    public static double gateClose = .15;
 
     public static double intakeOpen = .8;
     public static double intakeClose = .27;

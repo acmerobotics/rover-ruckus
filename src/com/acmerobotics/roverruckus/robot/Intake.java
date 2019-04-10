@@ -26,8 +26,10 @@ public class Intake extends Subsystem {
     public static final String TAG = "intake";
     public static double RAKE_UP = .7;
     public static double RAKE_DOWN = .24;
+    public static double RAKE_MARKER_DEPLOY = .5;
     public static double GROUND_INTAKERER_IN = .7;
     public static double GROUND_INTAKERER_OUT = .1;
+    public static double GROUND_INTAKERER_MIDDLE = .2;
     public static double WINCH_RADIUS = .5;
     public static double MAX_V = 30;
     public static double MAX_A = 30;
@@ -36,7 +38,9 @@ public class Intake extends Subsystem {
     public static double I = 0;
     public static double D = 0;
     public static double RAKE_RETRACT_DISTANCE = 6.5;
+    public static double RAKE_MARKER_DISTANCE = 30;
     public static double EXPEL_DURATION = 1000;
+    public static double RAKE_DELAY_TIME = 500;
     public static double DEBOUNCE_TIME = 500;
 
     private DcMotorEx rakeMotor, intakeMotor;
@@ -58,7 +62,10 @@ public class Intake extends Subsystem {
     private long stopTime;
     private double lastLow = 0;
 
+    private Robot robot;
+
     public Intake(Robot robot, HardwareMap map) {
+        this.robot = robot;
 
         rakeMotor = robot.getMotor("rakeMotor");
         rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
@@ -194,6 +201,18 @@ public class Intake extends Subsystem {
 
     public void groundIntakererOut () {
         groundIntakerer.setPosition(GROUND_INTAKERER_OUT);
+    }
+
+    public void groundIntakererMiddle () {groundIntakerer.setPosition(GROUND_INTAKERER_MIDDLE);}
+
+    public void deployMarker () {
+        rakeServo.setPosition(RAKE_MARKER_DEPLOY);
+        robot.pause(RAKE_DELAY_TIME);
+        rakeServo.setPosition(RAKE_UP);
+    }
+
+    public void extendToDeploy () {
+        goToPosition(RAKE_MARKER_DISTANCE);
     }
 
     @Override

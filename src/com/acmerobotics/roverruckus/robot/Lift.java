@@ -15,7 +15,6 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.sun.tools.javac.file.ZipFileIndexArchive;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,7 +33,7 @@ public class Lift extends Subsystem {
     public static double MASS_GOLD = .05;
     public static double MASS_SILVER = .03;
     public static double G = 386;
-    public static double P = 1;
+    public static double P = .5;
     public static double I = 0;
     public static double D = 0;
     public static double V = 15;
@@ -48,14 +47,15 @@ public class Lift extends Subsystem {
     public static double DUMP_DOWN = .8;
     public static double DUMP_MIDDLE = .5;
     public static double DUMP_UP = .05;
-    public static double RATCHET_ENGAGE = .5;
+    public static double RATCHET_ENGAGE = .3;
     public static double RATCHET_DISENGAGE = .85;
 
     public static double LIFT_LATCH = 14.5;
-    public static double LIFT_SCORE = 25;
+    public static double LIFT_SCORE = 26;
     public static double LIFT_MAX = 30;
     public static double LIFT_E_DUMP = 9;
-    public static double LIFT_FIND_LATCH_START = 14;
+    public static double LIFT_FIND_LATCH_START_BELOW = 14;
+    public static double LIFT_FIND_LATCH_START_ABOVE = 20;
     public static double LIFT_CLEARANCE = 10.25;
     public static double LIFT_DOWN = .5;
 
@@ -63,6 +63,7 @@ public class Lift extends Subsystem {
 
     public static double CONTACT_DISTANCE = .4;
     public static int LOWER_WAIT_TIME = 1000;
+    public static double GATE_OPEN_WAIT_TIME = 500;
 
     private DcMotorEx motor1, motor2;
     private Servo ratchet, dump;
@@ -79,6 +80,7 @@ public class Lift extends Subsystem {
     private double startTime;
 
     private double targetPosition;
+    private double findLatchDirection = 1;
 
     private enum LiftMode {
         RUN_TO_POSITION,
@@ -94,6 +96,8 @@ public class Lift extends Subsystem {
     public Placer placer;
     private boolean gateArmClosed = false;
     private boolean dumped = false;
+    private boolean liftRequested = false;
+    private double liftTime = 0;
 
     private Robot robot;
 
@@ -156,6 +160,7 @@ public class Lift extends Subsystem {
 
         placer.update(packet);
 
+        if (liftRequested && System.currentTimeMillis() > liftTime) executeLiftTop();
 
         switch (liftMode) {
             case RUN_TO_POSITION:
@@ -204,7 +209,7 @@ public class Lift extends Subsystem {
                     internalSetVelocity(-correction);
                 break;
             case FIND_LATCH:
-                internalSetVelocity(CALIBRATE_V);
+                internalSetVelocity(CALIBRATE_V * findLatchDirection);
                 if (isAtLatch()) {
                     Log.i(Auto.TAG, "found the sensor");
                     liftMode = LiftMode.HOLD_POSITION;
@@ -300,12 +305,18 @@ public class Lift extends Subsystem {
     }
 
     public void liftTop() {
-        goToPosition(LIFT_SCORE);
         placer.openGate();
+        liftRequested = true;
+        liftTime = System.currentTimeMillis() + GATE_OPEN_WAIT_TIME;
+    }
+
+    private void executeLiftTop() {
+        goToPosition(LIFT_SCORE);
         setDumpOnCompletion(DUMP_MIDDLE);
-        addCompletionAction(placerCloseAction);
+//        addCompletionAction(placerCloseAction);
         gateArmClosed = false;
         dumped = false;
+        liftRequested = false;
     }
 
     public void liftBottom() {
@@ -314,6 +325,7 @@ public class Lift extends Subsystem {
         addCompletionAction(findBottomAction);
         addCompletionAction(resetAction);
         dumped = false;
+//        liftRequested = false;
     }
 
     public void dumpUp() {
@@ -365,8 +377,13 @@ public class Lift extends Subsystem {
     }
 
     public void findLatch() {
+        boolean below = getPosition() < (LIFT_FIND_LATCH_START_ABOVE + LIFT_FIND_LATCH_START_BELOW) / 2;
+        goToPosition(below
+                ? LIFT_FIND_LATCH_START_BELOW
+                : LIFT_FIND_LATCH_START_ABOVE);
         addCompletionAction(findLatchAction);
-        goToPosition(LIFT_FIND_LATCH_START);
+        liftRequested = false;
+        findLatchDirection = below ? 1 : -1;
     }
 
     public void releaseMarker() {

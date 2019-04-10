@@ -1,5 +1,7 @@
 package com.acmerobotics.roverruckus.robot;
 
+import android.util.Log;
+
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
@@ -8,6 +10,7 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.drive.Kinematics;
 import com.acmerobotics.roadrunner.drive.MecanumKinematics;
 import com.acmerobotics.roverruckus.hardware.LynxOptimizedI2cFactory;
+import com.acmerobotics.roverruckus.opMode.auto.Auto;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -33,7 +36,7 @@ public class MecanumDrive extends Subsystem {
     public static double P = 10;
     public static double I = 4;
     public static double D = 0;
-    public static double F = 12.579;
+    public static double F = 19;
     public static double TELEOP_V = 45;
     public static double TELEOP_OMEGA = 2;
 
@@ -94,7 +97,7 @@ public class MecanumDrive extends Subsystem {
     private Vector2d lastTrackerPositions = new Vector2d();
     private boolean estimatingPose = true;
     private double[] lastWheelPositions = new double[4];
-    private long lastUpdate = 0;
+    private long lastUpdate;
     private double lastHeading = 0;
 
     public Trajectory trajectory;
@@ -128,6 +131,7 @@ public class MecanumDrive extends Subsystem {
         for (int i = 0; i < trackerNames.length; i++) {
 //            trackers[i] = robot.getMotor(trackerNames[i]);
             trackers[i] = hardwareMap.dcMotor.get(trackerNames[i]);
+            trackers[i].setMode(DcMotor.RunMode.RESET_ENCODERS);
         }
 
         I2cDeviceSynch imuI2cDevice = LynxOptimizedI2cFactory.createLynxI2cDeviceSynch(hardwareMap.get(LynxModule.class, "hub1"), 0);
@@ -162,6 +166,9 @@ public class MecanumDrive extends Subsystem {
         }
 
         setMotorPIDF(P, I, D, F);
+        setCurrentEstimatedPose(new Pose2d());
+        lastUpdate = 0;
+        Log.i(Auto.TAG, "endOfInit: " + getCurrentEstimatedPose().toString());
 
     }
 
