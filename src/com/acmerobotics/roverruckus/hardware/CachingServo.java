@@ -15,9 +15,7 @@ public class CachingServo implements Servo, CachingMotor {
 
     @Override
     public synchronized void update() {
-        synchronized (this) {
             if (needsUpdate) delegate.setPosition(cachedPosition);
-        }
     }
 
     @Override
@@ -41,13 +39,11 @@ public class CachingServo implements Servo, CachingMotor {
     }
 
     @Override
-    public void setPosition(double position) {
-        synchronized (this) {
+    public synchronized void setPosition(double position) {
             if (position != cachedPosition) {
                 cachedPosition = position;
                 needsUpdate = true;
             }
-        }
     }
 
     @Override

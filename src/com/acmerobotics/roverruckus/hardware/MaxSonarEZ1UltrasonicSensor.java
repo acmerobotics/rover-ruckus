@@ -9,22 +9,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 /**
  * This class provides API access to the MaxSonar EZ1 Ultrasonic Sensor.
  */
-public class MaxSonarEZ1UltrasonicSensor implements UltrasonicSensor, DistanceSensor, CachingSensor {
+public class MaxSonarEZ1UltrasonicSensor implements UltrasonicSensor, DistanceSensor{
     private boolean enabled = true;
     private boolean updated = false;
     private double ultrasonicLevel = 0;
 
-    @Override
-    public synchronized void setEnabled(boolean enabled) {
-        this.enabled = true;
-    }
-
-    @Override
-    public synchronized boolean updated() {
-        return updated;
-    }
-
-    @Override
     public synchronized void update() {
         updated = false;
         if (enabled) {

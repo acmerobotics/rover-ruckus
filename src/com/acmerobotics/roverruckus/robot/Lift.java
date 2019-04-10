@@ -13,10 +13,10 @@ import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -25,13 +25,18 @@ import java.util.Arrays;
 
 @Config
 public class Lift extends Subsystem {
-    public static double F_UP = 1 / 11.873;
-    public static double F_DOWN = F_UP / 2;
-    private double F = F_UP;
+    public static double K_V = 0.0643202688898; //power / in/sec
+    public static double K_STATIC = 0.118777073737;
+    public static double K_A = 0.000127390384279;
+    public static double MASS_CARTRIGE = .75;
+    public static double MASS_FRAME = .75;
+    public static double MASS_GOLD = .05;
+    public static double MASS_SILVER = .03;
+    public static double G = 386;
     public static double P = .5;
     public static double I = 0;
     public static double D = 0;
-    public static double V = 20;
+    public static double V = 15;
     public static double A = 30;
     public static double J = 30;
     public static double LOWER_P = -.5;
@@ -39,32 +44,30 @@ public class Lift extends Subsystem {
     public static double LOWER_DISTANCE = .15;
     public static double LOWER_THRESHOLD = .05;
 
-    public static double DUMP_DOWN = .92;
-    public static double DUMP_MIDDLE = .65;
-    public static double DUMP_UP = .15;
-    public static double RATCHET_ENGAGE = .5;
+    public static double DUMP_DOWN = .8;
+    public static double DUMP_MIDDLE = .5;
+    public static double DUMP_UP = .05;
+    public static double RATCHET_ENGAGE = .3;
     public static double RATCHET_DISENGAGE = .85;
-    public static double MARKER_UP = .8;
-    public static double MARKER_DOWN = .5;
 
     public static double LIFT_LATCH = 14.5;
-    public static double LIFT_SCORE = 25;
+    public static double LIFT_SCORE = 26;
     public static double LIFT_MAX = 30;
     public static double LIFT_E_DUMP = 9;
-    public static double LIFT_FIND_LATCH_START = 14;
+    public static double LIFT_FIND_LATCH_START_BELOW = 14;
+    public static double LIFT_FIND_LATCH_START_ABOVE = 20;
     public static double LIFT_CLEARANCE = 10.25;
     public static double LIFT_DOWN = .5;
 
-    public static double FIND_LATCH_V = .3;
+    public static double CALIBRATE_V = .3;
 
-    public static double K_STATIC = -.3;
     public static double CONTACT_DISTANCE = .4;
     public static int LOWER_WAIT_TIME = 1000;
+    public static double GATE_OPEN_WAIT_TIME = 500;
 
     private DcMotorEx motor1, motor2;
-    private Servo marker, ratchet, dump;
+    private Servo ratchet, dump;
     private SharpDistanceSensor distance;
-    private DigitalChannel liftSensor;
     private boolean ratchetEngaged = true;
 
     private double offset;
@@ -77,21 +80,15 @@ public class Lift extends Subsystem {
     private double startTime;
 
     private double targetPosition;
-
-    private double dumpPositionOnCompletion = DUMP_MIDDLE;
-    private boolean moveDumpOnCompletion = false;
-    private boolean closePlacerOnCompletion = false;
-    private boolean openGateOnCompletion = false;
-    private boolean emergencyDumpOnCompletion = false;
-    private boolean findLatchOnCompletion = false;
-    private boolean asynch = false;
+    private double findLatchDirection = 1;
 
     private enum LiftMode {
         RUN_TO_POSITION,
         DRIVER_CONTROLLED,
         HOLD_POSITION,
         LOWERING,
-        FIND_LATCH
+        FIND_LATCH,
+        FIND_BOTTOM
     }
 
     private LiftMode liftMode = LiftMode.DRIVER_CONTROLLED;
@@ -99,33 +96,51 @@ public class Lift extends Subsystem {
     public Placer placer;
     private boolean gateArmClosed = false;
     private boolean dumped = false;
+    private boolean liftRequested = false;
+    private double liftTime = 0;
 
     private Robot robot;
 
+    private interface CompletionAction {
+        void onCompletion();
+    }
+
+    private ArrayList<CompletionAction> actionsOnComplete;
+
+    private double dumpPositionOnCompletion = DUMP_MIDDLE;
+    private final CompletionAction dumpAction = () -> dump.setPosition(dumpPositionOnCompletion);
+    private final CompletionAction placerCloseAction = () -> placer.closeGate();
+    private final CompletionAction resetAction = () -> placer.reset();
+    private final CompletionAction eDumpAction = () -> placer.releaseGold();
+    private final CompletionAction findLatchAction = () -> liftMode = LiftMode.FIND_LATCH;
+    private final CompletionAction findBottomAction = () -> liftMode = LiftMode.FIND_BOTTOM;
+
+    private boolean asynch = false;
+
+
     public Lift(Robot robot, HardwareMap hardwareMap) {
         this.robot = robot;
-        motor1 = hardwareMap.get(DcMotorEx.class, "liftMotor1");
+        motor1 = robot.getMotor("liftMotor1");
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
         motor1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        motor2 = hardwareMap.get(DcMotorEx.class, "liftMotor2");
+        motor2 = robot.getMotor("liftMotor2");
         motor2.setDirection(DcMotorSimple.Direction.FORWARD);
         motor2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         setPosition(0);
 
+        distance = new SharpDistanceSensor(robot.getAnalogInput(0, 0)); //todo check this port
         ratchet = hardwareMap.get(Servo.class, "ratchet");
         dump = hardwareMap.get(Servo.class, "dump");
-        marker = hardwareMap.get(Servo.class, "marker");
-        distance = new SharpDistanceSensor(hardwareMap.analogInput.get("dist"));
-        liftSensor = hardwareMap.digitalChannel.get("liftSensor");
 
         pidController = new PIDController(P, I, D);
 
-        placer = new Placer(hardwareMap);
+        placer = new Placer(robot, hardwareMap);
 
         markerDown();
         engageRatchet();
         dumpDown();
         placer.reset();
+        actionsOnComplete = new ArrayList<>();
     }
 
     public double getPosition() {
@@ -143,11 +158,14 @@ public class Lift extends Subsystem {
         packet.put("ratchet", ratchetEngaged);
         packet.put("distance", distance.getUnscaledDistance());
 
+        placer.update(packet);
+
+        if (liftRequested && System.currentTimeMillis() > liftTime) executeLiftTop();
 
         switch (liftMode) {
             case RUN_TO_POSITION:
                 double t = (System.currentTimeMillis() - startTime) / 1000.0;
-                if (!gateArmClosed && getPosition() > LIFT_LATCH) {
+                if (!gateArmClosed && getPosition() > LIFT_LATCH && !placer.isBusy()) {
                     placer.closeArm();
                     gateArmClosed = true;
                 }
@@ -165,7 +183,7 @@ public class Lift extends Subsystem {
                 double error = getPosition() - target.getX();
                 packet.put("error", error);
                 double correction = pidController.update(error);
-                double feedForward = F * target.getV();
+                double feedForward = getFeedForward(target, getMass());
                 internalSetVelocity(feedForward - correction);
                 break;
             case HOLD_POSITION:
@@ -191,58 +209,49 @@ public class Lift extends Subsystem {
                     internalSetVelocity(-correction);
                 break;
             case FIND_LATCH:
-                internalSetVelocity(FIND_LATCH_V);
-                if (!liftSensor.getState()) {
+                internalSetVelocity(CALIBRATE_V * findLatchDirection);
+                if (isAtLatch()) {
                     Log.i(Auto.TAG, "found the sensor");
                     liftMode = LiftMode.HOLD_POSITION;
                     internalSetVelocity(0);
                     targetPosition = getPosition();
                     pidController = new PIDController(P, I, D);
                 }
-
-
+                break;
+            case FIND_BOTTOM:
+                internalSetVelocity(-CALIBRATE_V);
+                if (isAtBottom()) {
+                    Log.i(Robot.TAG, "found the bottom");
+                    liftMode = LiftMode.HOLD_POSITION;
+                    internalSetVelocity(0);
+                    targetPosition = 0;
+                    setPosition(0);
+                    pidController = new PIDController(P, I, D);
+                }
         }
 
     }
 
     private void setDumpOnCompletion(double position) {
         dumpPositionOnCompletion = position;
-        moveDumpOnCompletion = true;
+        addCompletionAction(dumpAction);
     }
 
     private void completionDump() {
-        if (moveDumpOnCompletion) dump.setPosition(dumpPositionOnCompletion);
-        if (closePlacerOnCompletion) placer.closeArm();
-        if (openGateOnCompletion) placer.openIntake();
-        if (emergencyDumpOnCompletion) {
-            placer.releaseGold();
-            placer.releaseGold();
-        }
-        if (findLatchOnCompletion) {
-            liftMode = LiftMode.FIND_LATCH;
-        }
-        if (dumpPositionOnCompletion == DUMP_UP) dumped = true;
-        openGateOnCompletion = false;
-        moveDumpOnCompletion = false;
-        closePlacerOnCompletion = false;
-        emergencyDumpOnCompletion = false;
-        findLatchOnCompletion = false;
+        executeCompletionActions();
     }
 
     public void lower() {
         pidController = new PIDController(LOWER_P, 0, 0);
         disengageRatchet();
         dumpMiddle();
-        placer.reset();
         liftMode = LiftMode.LOWERING;
         lowerStartTime = System.currentTimeMillis();
         dumped = false;
     }
 
-    public void goToPosition(double position) {
+    public void goToPosition(double position, double v) {
         pidController = new PIDController(P, I, D);
-        if (position > getPosition()) F = F_UP;
-        else F = F_DOWN;
         profile = MotionProfileGenerator.generateSimpleMotionProfile(
                 new MotionState(getPosition(), 0, 0, 0),
                 new MotionState(position, 0, 0, 0),
@@ -251,6 +260,11 @@ public class Lift extends Subsystem {
         startTime = System.currentTimeMillis();
         disengageRatchet();
         liftMode = LiftMode.RUN_TO_POSITION;
+        resetCompletionActions();
+    }
+
+    public void goToPosition (double position) {
+        goToPosition(position, 0);
     }
 
 
@@ -260,15 +274,17 @@ public class Lift extends Subsystem {
         if (getPosition() <= 0 && v < 0) return;
         if (!ratchetEngaged) v /= 2;
         liftMode = LiftMode.DRIVER_CONTROLLED;
-        moveDumpOnCompletion = false;
-        closePlacerOnCompletion = false;
-        openGateOnCompletion = false;
-        emergencyDumpOnCompletion = false;
+        resetCompletionActions();
         if (v <= 0 || !ratchetEngaged) internalSetVelocity(v);
     }
 
+    public void setPower (double power) {
+        disengageRatchet();
+        internalSetVelocity(power);
+    }
+
     private void internalSetVelocity(double v) {
-        if (v != 0 && liftMode != LiftMode.HOLD_POSITION && !dumped) dumpMiddle();
+        if (v != 0 && liftMode != LiftMode.HOLD_POSITION && !dumped && liftMode != LiftMode.FIND_BOTTOM) dumpMiddle();
         motor1.setPower(v);
         motor2.setPower(v);
     }
@@ -289,19 +305,27 @@ public class Lift extends Subsystem {
     }
 
     public void liftTop() {
+        placer.openGate();
+        liftRequested = true;
+        liftTime = System.currentTimeMillis() + GATE_OPEN_WAIT_TIME;
+    }
+
+    private void executeLiftTop() {
         goToPosition(LIFT_SCORE);
         setDumpOnCompletion(DUMP_MIDDLE);
-        closePlacerOnCompletion = true;
+//        addCompletionAction(placerCloseAction);
         gateArmClosed = false;
         dumped = false;
+        liftRequested = false;
     }
 
     public void liftBottom() {
         goToPosition(LIFT_DOWN);
         setDumpOnCompletion(DUMP_DOWN);
-        placer.reset();
-        openGateOnCompletion = true;
+        addCompletionAction(findBottomAction);
+        addCompletionAction(resetAction);
         dumped = false;
+//        liftRequested = false;
     }
 
     public void dumpUp() {
@@ -309,6 +333,7 @@ public class Lift extends Subsystem {
         else if (getPosition() < LIFT_E_DUMP) {
             goToPosition(LIFT_E_DUMP);
             setDumpOnCompletion(DUMP_UP);
+            actionsOnComplete.add(eDumpAction);
         } else {
             dump.setPosition(DUMP_UP);
             dumped = true;
@@ -325,25 +350,40 @@ public class Lift extends Subsystem {
     }
 
     public void markerUp() {
-        marker.setPosition(MARKER_UP);
     }
 
     public void markerDown() {
-        marker.setPosition(MARKER_DOWN);
     }
 
     @Override
     public boolean isBusy() {
-        return !asynch && Arrays.asList(LiftMode.RUN_TO_POSITION, LiftMode.LOWERING, LiftMode.FIND_LATCH).contains(liftMode);
+        return placer.isBusy() || (!asynch && Arrays.asList(LiftMode.RUN_TO_POSITION, LiftMode.LOWERING, LiftMode.FIND_LATCH).contains(liftMode));
     }
 
     public boolean isSensor() {
-        return liftSensor.getState();
+        return robot.getDigitalPort(0,0); //todo check this port
+    }
+
+    public boolean isAtLatch() {
+        return !robot.getDigitalPort(0,3); //// TODO: check
+    }
+
+    public boolean isAtBottom() {
+        return !robot.getDigitalPort(0, 5) && !robot.getDigitalPort(0, 7); //todo check
+    }
+
+    public boolean frameIsAtBottom() {
+        return !robot.getDigitalPort(0, 5);
     }
 
     public void findLatch() {
-        findLatchOnCompletion = true;
-        goToPosition(LIFT_FIND_LATCH_START);
+        boolean below = getPosition() < (LIFT_FIND_LATCH_START_ABOVE + LIFT_FIND_LATCH_START_BELOW) / 2;
+        goToPosition(below
+                ? LIFT_FIND_LATCH_START_BELOW
+                : LIFT_FIND_LATCH_START_ABOVE);
+        addCompletionAction(findLatchAction);
+        liftRequested = false;
+        findLatchDirection = below ? 1 : -1;
     }
 
     public void releaseMarker() {
@@ -362,6 +402,31 @@ public class Lift extends Subsystem {
 
     public void setOffset(double offset) {
         this.offset = offset;
+    }
+
+    private double getFeedForward (MotionState state, double mass) {
+        double ff = K_V * state.getV() + K_A * mass * (state.getA() - G);
+        if (Math.abs(ff) > 1e-4) ff +=  Math.copySign(K_STATIC, ff);
+        return ff;
+    }
+
+    private double getMass () {
+        double mass = MASS_CARTRIGE;
+        if (!frameIsAtBottom()) mass += MASS_FRAME;
+        return mass;
+    }
+
+    private void resetCompletionActions () {
+        actionsOnComplete.clear();
+    }
+
+    private void addCompletionAction (CompletionAction action) {
+        if (!actionsOnComplete.contains(action)) actionsOnComplete.add(action);
+    }
+
+    private void executeCompletionActions () {
+        for (CompletionAction action: actionsOnComplete) action.onCompletion();
+        dumped = dumpPositionOnCompletion == DUMP_UP && actionsOnComplete.contains(dumpAction);
     }
 }
 

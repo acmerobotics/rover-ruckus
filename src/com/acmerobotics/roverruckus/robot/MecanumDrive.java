@@ -1,5 +1,7 @@
 package com.acmerobotics.roverruckus.robot;
 
+import android.util.Log;
+
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
@@ -8,6 +10,7 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.drive.Kinematics;
 import com.acmerobotics.roadrunner.drive.MecanumKinematics;
 import com.acmerobotics.roverruckus.hardware.LynxOptimizedI2cFactory;
+import com.acmerobotics.roverruckus.opMode.auto.Auto;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -33,7 +36,7 @@ public class MecanumDrive extends Subsystem {
     public static double P = 10;
     public static double I = 4;
     public static double D = 0;
-    public static double F = 12.579;
+    public static double F = 19;
     public static double TELEOP_V = 45;
     public static double TELEOP_OMEGA = 2;
 
@@ -61,8 +64,8 @@ public class MecanumDrive extends Subsystem {
 
     private DcMotor[] trackers;
     private static final String[] trackerNames = {
-            "liftMotor2",
-            "intakeMotor"
+            "intakeMotor",
+            "liftMotor2"
     };
 
     private static final Vector2d trackerCorrection = new Vector2d(3500, 0);
@@ -94,7 +97,7 @@ public class MecanumDrive extends Subsystem {
     private Vector2d lastTrackerPositions = new Vector2d();
     private boolean estimatingPose = true;
     private double[] lastWheelPositions = new double[4];
-    private long lastUpdate = 0;
+    private long lastUpdate;
     private double lastHeading = 0;
 
     public Trajectory trajectory;
@@ -115,10 +118,9 @@ public class MecanumDrive extends Subsystem {
         this.robot = robot;
         motors = new DcMotorEx[motorNames.length];
         for (int i = 0; i < motorNames.length; i++) {
-            motors[i] = (DcMotorEx) hardwareMap.get(DcMotor.class, motorNames[i]);
+            motors[i] = robot.getMotor(motorNames[i]);
             motors[i].setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             motors[i].setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//            robot.addMotor(motors[i]);
         }
         motors[0].setDirection(DcMotorSimple.Direction.FORWARD);
         motors[1].setDirection(DcMotorSimple.Direction.FORWARD);
@@ -127,7 +129,9 @@ public class MecanumDrive extends Subsystem {
 
         trackers = new DcMotor[trackerNames.length];
         for (int i = 0; i < trackerNames.length; i++) {
+//            trackers[i] = robot.getMotor(trackerNames[i]);
             trackers[i] = hardwareMap.dcMotor.get(trackerNames[i]);
+            trackers[i].setMode(DcMotor.RunMode.RESET_ENCODERS);
         }
 
         I2cDeviceSynch imuI2cDevice = LynxOptimizedI2cFactory.createLynxI2cDeviceSynch(hardwareMap.get(LynxModule.class, "hub1"), 0);
@@ -162,6 +166,9 @@ public class MecanumDrive extends Subsystem {
         }
 
         setMotorPIDF(P, I, D, F);
+        setCurrentEstimatedPose(new Pose2d());
+        lastUpdate = 0;
+        Log.i(Auto.TAG, "endOfInit: " + getCurrentEstimatedPose().toString());
 
     }
 
@@ -176,6 +183,21 @@ public class MecanumDrive extends Subsystem {
             double wheelVelocity = surfaceVelocity / driveRadius;
             motors[i].setVelocity(wheelVelocity, AngleUnit.RADIANS);
         }
+    }
+
+    private void internalSetPowers(Pose2d v) {
+        for (int i = 0; i < motors.length; i++) {
+            Vector2d rotorVelocity = new Vector2d(
+                    v.getX() - v.getHeading() * wheelPositions[i].getY(),
+                    v.getY() + v.getHeading() * wheelPositions[i].getX()
+            );
+            double surfaceVelocity = rotorVelocity.dot(rotorDirections[i]);
+            motors[i].setPower(surfaceVelocity);
+        }
+    }
+
+    public void setPower(Pose2d p) {
+        internalSetPowers(p);
     }
 
     /**
@@ -223,6 +245,8 @@ public class MecanumDrive extends Subsystem {
     @Override
     public void update(TelemetryPacket packet) {
         packet.put("mode", currentMode);
+        packet.put("trackingX", trackers[1].getCurrentPosition());
+        packet.put("trackingY", trackers[0].getCurrentPosition());
         if (estimatingPose) {
             updatePoseEstimate();
 //            drawPose(packet.fieldOverlay(), currentEstimatedPose, "red");
@@ -353,5 +377,10 @@ public class MecanumDrive extends Subsystem {
         }
     }
 
+    public void setRunMode (DcMotor.RunMode mode) {
+        for (DcMotorEx motor: motors) {
+            motor.setMode(mode);
+        }
+    }
 
 }

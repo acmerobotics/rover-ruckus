@@ -7,7 +7,9 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.profile.MotionProfile;
 import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
+import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
 import com.acmerobotics.roverruckus.util.PIDController;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -22,8 +24,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 @Config
 public class Intake extends Subsystem {
     public static final String TAG = "intake";
-    public static double RAKE_UP = .8;
-    public static double RAKE_DOWN = .35;
+    public static double RAKE_UP = .7;
+    public static double RAKE_DOWN = .24;
+    public static double RAKE_MARKER_DEPLOY = .5;
+    public static double GROUND_INTAKERER_IN = .7;
+    public static double GROUND_INTAKERER_OUT = .1;
+    public static double GROUND_INTAKERER_MIDDLE = .2;
     public static double WINCH_RADIUS = .5;
     public static double MAX_V = 30;
     public static double MAX_A = 30;
@@ -32,10 +38,14 @@ public class Intake extends Subsystem {
     public static double I = 0;
     public static double D = 0;
     public static double RAKE_RETRACT_DISTANCE = 6.5;
+    public static double RAKE_MARKER_DISTANCE = 30;
+    public static double EXPEL_DURATION = 1000;
+    public static double RAKE_DELAY_TIME = 500;
+    public static double DEBOUNCE_TIME = 500;
 
     private DcMotorEx rakeMotor, intakeMotor;
 
-    private Servo rakeServo;
+    private Servo rakeServo, groundIntakerer;
 
     private boolean driverControled = true;
     private boolean profileComplete = true;
@@ -46,19 +56,32 @@ public class Intake extends Subsystem {
     private double offset = 0;
     private double targetX = 0;
 
-    public Intake(Robot robot, HardwareMap map) {
+    private AnalogInput beamBreak;
+    private boolean intaking = false;
+    private boolean needStop = false;
+    private long stopTime;
+    private double lastLow = 0;
 
-        rakeMotor = map.get(DcMotorEx.class, "rakeMotor");
+    private Robot robot;
+
+    public Intake(Robot robot, HardwareMap map) {
+        this.robot = robot;
+
+        rakeMotor = robot.getMotor("rakeMotor");
         rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
         rakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 //        setPosition(0);
 
-        intakeMotor = map.get(DcMotorEx.class, "intakeMotor");
+        intakeMotor = robot.getMotor("intakeMotor");
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        rakeServo = map.get(Servo.class, "rake");
+        beamBreak = robot.getAnalogInput(0, 1);
+
+        rakeServo = robot.getServo("rake");
+        groundIntakerer = robot.getServo("ground");
         setPosition(0);
         controller = new PIDController(P, I, D);
+        driverControled = true;
         rakeUp();
 
     }
@@ -71,10 +94,11 @@ public class Intake extends Subsystem {
     @Override
     public void update(TelemetryPacket packet) {
         packet.put("rakePosition", getPosition());
+        packet.put("beamBreak", beamBreak.getVoltage());
         Log.i(TAG, "position: " + getPosition());
         Log.i(TAG, "driver controlled: " + driverControled);
         Log.i(TAG, "complete" + profileComplete);
-        if (driverControled && armPower != 0) {
+        if (driverControled) {
             rakeMotor.setPower(armPower);
             targetX = getPosition();
 
@@ -100,6 +124,23 @@ public class Intake extends Subsystem {
             Log.i(TAG, "correction: " + correction);
             packet.put("command", targetV + correction);
             rakeMotor.setVelocity((targetV + correction) / WINCH_RADIUS, AngleUnit.RADIANS);
+        }
+
+        if (intaking) {
+            if (beamBreak.getVoltage() > 500) lastLow = System.currentTimeMillis();
+            if (beamBreak.getVoltage() < 500 && lastLow + DEBOUNCE_TIME <= System.currentTimeMillis()) {
+                intaking = false;
+                intakeMotor.setPower(-1);
+                needStop = true;
+                stopTime = System.currentTimeMillis() + (long) EXPEL_DURATION;
+            }
+        }
+
+        if (needStop) {
+            if (stopTime <= System.currentTimeMillis()) {
+                needStop = false;
+                intakeMotor.setPower(0);
+            }
         }
     }
 
@@ -154,9 +195,29 @@ public class Intake extends Subsystem {
         Log.e(TAG, "retracting");
     }
 
+    public void groundIntakererIn () {
+        groundIntakerer.setPosition(GROUND_INTAKERER_IN);
+    }
+
+    public void groundIntakererOut () {
+        groundIntakerer.setPosition(GROUND_INTAKERER_OUT);
+    }
+
+    public void groundIntakererMiddle () {groundIntakerer.setPosition(GROUND_INTAKERER_MIDDLE);}
+
+    public void deployMarker () {
+        rakeServo.setPosition(RAKE_MARKER_DEPLOY);
+        robot.pause(RAKE_DELAY_TIME);
+        rakeServo.setPosition(RAKE_UP);
+    }
+
+    public void extendToDeploy () {
+        goToPosition(RAKE_MARKER_DISTANCE);
+    }
+
     @Override
     public boolean isBusy() {
-        return !profileComplete;
+        return !profileComplete || intaking;
     }
 
     public double getOffset() {
@@ -167,6 +228,10 @@ public class Intake extends Subsystem {
         this.offset = 0;
     }
 
+    public void intake () {
+        intaking = true;
+        intakeMotor.setPower(1);
+    }
 
 }
 

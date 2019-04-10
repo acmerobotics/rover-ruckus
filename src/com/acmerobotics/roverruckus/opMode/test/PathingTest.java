@@ -1,51 +1,53 @@
 package com.acmerobotics.roverruckus.opMode.test;
 
-import android.media.SoundPool;
-
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.followers.TrajectoryFollower;
+import com.acmerobotics.roverruckus.robot.MecanumDrive;
 import com.acmerobotics.roverruckus.robot.Robot;
+import com.acmerobotics.roverruckus.trajectory.SplineTrajectory;
+import com.acmerobotics.roverruckus.trajectory.Trajectory;
+import com.acmerobotics.roverruckus.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roverruckus.trajectory.Waypoint;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
+import java.util.ArrayList;
+
+@Config
 @Autonomous(name = "pathTest")
 public class PathingTest extends LinearOpMode {
+
+    public static double P = MecanumDrive.P;
+    public static double I = MecanumDrive.I;
+    public static double D = MecanumDrive.D;
+    public static double F = MecanumDrive.F;
 
     @Override
     public void runOpMode() {
         Robot robot = new Robot(this, hardwareMap);
-        SoundPool pool = new SoundPool.Builder().build();
-        int id = pool.load("/sdcard/tokyo_drift.mp33", 1);
+
+        robot.drive.setCurrentEstimatedPose(new Pose2d());
+
         waitForStart();
-        id = pool.play(id, 1, 1, 1, 0, 1);
-
-//       Pose2d lander = new Pose2d(12, 12, Math.PI / 4);
-//       Pose2d sample = new Pose2d(24, 48, -Math.PI / 4);
-//       Pose2d depot = new Pose2d(48, 60, 0);
-//       Pose2d crater = new Pose2d(-24, 60, 0);
-
-        Waypoint lander = new Waypoint(new Pose2d(14.5, 14.5, Math.PI / 4), Math.PI / 4);
-        Waypoint sample = new Waypoint(new Pose2d(24, 48, 3 * Math.PI / 4), Math.PI / 4);
-        Waypoint depot = new Waypoint(new Pose2d(48, 60, Math.PI), Math.PI / 4, Math.PI);
-        Waypoint almostThere = new Waypoint(new Pose2d(0, 622, -Math.PI / 2), Math.PI);
-        Waypoint crater = new Waypoint(new Pose2d(-24, 62, -Math.PI / 2), Math.PI);
 
 
-        robot.drive.setCurrentEstimatedPose(lander.pos());
+        while (opModeIsActive()) {
+            robot.drive.setMotorPIDF(P, I, D, F);
+            ArrayList<Trajectory> trajectories = new TrajectoryBuilder(new Waypoint(robot.drive.getCurrentEstimatedPose(), 0))
+                .to(new Waypoint(new Pose2d(24, 0, Math.PI), 0, Math.PI / 2))
+                .to(new Waypoint(new Pose2d(24, 24, 0), Math.PI / 2, Math.PI))
+                .to(new Waypoint(new Pose2d(), -Math.PI / 2))
+//                    .to(new Waypoint(new Pose2d(48, 0, 0), 0, Math.PI))
+//                    .to(new Waypoint(new Pose2d(0, 0, 0), Math.PI))
+                .build();
 
-//       SuperArrayList<Path> paths = new TrajectoryBuilder(lander).to(sample).to(depot).to(almostThere).to(crater).build();
-//       SuperArrayList<Path> paths = new SuperArrayList<>();
-//       paths.add(new PathBuilder(lander)
-//               .splineTo(sample, new ConstantInterpolator(lander.getHeading()))
-//               .splineTo(depot, new ConstantInterpolator(lander.getHeading())).build());
-//       paths.add(new PathBuilder(depot).splineTo(crater, new ConstantInterpolator(lander.getHeading())).build());
+            for (Trajectory trajectory: trajectories) {
+                 robot.drive.followTrajectory(trajectory);
+                 robot.waitForAllSubsystems();
+            }
 
-//       for (Path path: paths) {
-//           robot.drive.followTrajectory(path);
-//           robot.waitForAllSubsystems();
-//       }
-//       pool.stop(id);
-//       pool.unload(id);
+        }
 
     }
 

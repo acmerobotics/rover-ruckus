@@ -6,8 +6,13 @@ import android.util.Log;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roverruckus.robot.Robot;
+import com.acmerobotics.roverruckus.util.Differentiator;
+import com.acmerobotics.roverruckus.util.LogWriter;
+import com.acmerobotics.roverruckus.util.PoseUtil;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.Range;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -16,68 +21,36 @@ import java.io.FileWriter;
 @Config
 public class FFTuning extends LinearOpMode {
 
-    public static double ACCELERATION = 15.0;
-    public static double F = 12.759;
-    public static double P = 0;
-    public static double I = 0;
-    public static double D = 0;
-    public static double DISTANCE = 48;
-    private Robot robot;
+    public static double ACCELERATION = .05;
+
+    private Pose2d theOneWereMeasuring = new Pose2d(0, 1, 0);
 
     @Override
     public void runOpMode() {
-        robot = new Robot(this, hardwareMap);
-        double f = robot.drive.getMotorPIDF().f;
-        robot.addTelemetry("f", f);
-        robot.addTelemetry("p", robot.drive.getMotorPIDF().p);
-        robot.addTelemetry("i", robot.drive.getMotorPIDF().i);
-        robot.addTelemetry("d", robot.drive.getMotorPIDF().d);
-        robot.drive.setMotorPIDF(P, I, D, F);
+        Robot robot = new Robot(this, hardwareMap);
+        robot.drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        FileWriter writer = null;
-        try {
-            String path = Environment.getExternalStorageDirectory().getPath() + "/fftuner/";
-            new File(path).mkdirs();
-            Log.e("path", path);
-            writer = new FileWriter(path + System.currentTimeMillis() + ".csv");
-            writer.write("target, actual\n");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
+        Differentiator diff = new Differentiator();
+        diff.update(0);
+        LogWriter writer = new LogWriter("driveLateral", "command", "velocity");
 
         waitForStart();
 
-        long startTime = System.currentTimeMillis();
+        double lastCommand = 0;
         while (!isStopRequested()) {
-//            double v = (System.currentTimeMillis() - startTime) / (ACCELERATION * F);
-//            robot.drive.setRealVelocity(new Pose2d(v, 0, 0));
-//            robot.addTelemetry("target", v);
-            robot.addTelemetry("actual", robot.drive.getVelocity());
-//            try {
-//                writer.write(v + ", " + robot.drive.getVelocity() + "\n");
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//                Log.e("ahhhh", "ahhhhhhhhh");
-//                return;
-//            }
-            robot.drive.setMotorPIDF(P, I, D, F);
-            robot.drive.setCurrentEstimatedPose(new Pose2d());
-//            robot.drive.followTrajectory(new PathBuilder(new Pose2d()).lineTo(new Vector2d(DISTANCE, 0), new ConstantInterpolator(0)).build());
-            while (!isStopRequested() && robot.drive.isFollowingPath()) {
-                robot.update();
-            }
-//            robot.drive.followTrajectory(new PathBuilder(new Pose2d(DISTANCE, 0, 0)).lineTo(new Vector2d(0, 0), new ConstantInterpolator(0)).build());
-            while (!isStopRequested() && robot.drive.isFollowingPath()) {
-                robot.update();
-            }
+            double x = robot.drive.getCurrentEstimatedPose().getY();
+            diff.update(x);
+            robot.addTelemetry("ffTuningX", x);
+            robot.addTelemetry("ffTuningV", diff.getV());
+            robot.addTelemetry("ffTuningC", lastCommand);
+            writer.writeLine(lastCommand, diff.getV());
+            lastCommand += diff.getDt() * ACCELERATION;
+            lastCommand = Range.clip(lastCommand, 0, 1);
+            robot.drive.setPower(theOneWereMeasuring.times(lastCommand));
+            robot.update();
         }
 
-        try {
-            writer.flush();
-            writer.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        writer.close();
+
     }
 }

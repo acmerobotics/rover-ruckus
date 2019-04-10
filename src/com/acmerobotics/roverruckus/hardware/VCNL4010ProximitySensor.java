@@ -15,29 +15,10 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.nio.ByteOrder;
 
 @I2cSensor(name = "VCNL4010 Proximity Sensor", description = "Proximity Sensor from Adafruit", xmlTag = "VCNL4010")
-public class VCNL4010ProximitySensor extends I2cDeviceSynchDeviceWithParameters<I2cDeviceSynch, VCNL4010ProximitySensor.Parameters> implements DistanceSensor, CachingSensor {
+public class VCNL4010ProximitySensor extends I2cDeviceSynchDeviceWithParameters<I2cDeviceSynch, VCNL4010ProximitySensor.Parameters> implements DistanceSensor {
     private boolean enabled = true;
     private boolean updated = true;
     private double distance = 0;
-
-    @Override
-    public synchronized void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    @Override
-    public synchronized boolean updated() {
-        return updated;
-    }
-
-    @Override
-    public synchronized void update() {
-        updated = false;
-        if (enabled) {
-            distance = readProximity();
-            updated = true;
-        }
-    }
 
     public static class Parameters {
         public I2cAddr i2cAddr = I2CADDR_DEFAULT;
