@@ -22,7 +22,7 @@ public class SplineTrajectory extends Trajectory {
 
     private double duration;
     private boolean complete = false;
-    private double error = 0, axialError = 0, lateralError = 0, averageHeadingError = 0;
+    private double error = 0;
 
     public SplineTrajectory(Path path) {
         this(path, 0, false);
@@ -50,12 +50,13 @@ public class SplineTrajectory extends Trajectory {
 
     @Override
     public synchronized Pose2d internalUpdate(double t, Pose2d pose, TelemetryPacket packet) {
-        if (t >= duration) complete = true;
         Pose2d targetPose = path.get(axialProfile.get(t).getX());
         double theta = Angle.norm(path.deriv(axialProfile.get(t).getX()).pos().angle());
 
         Pose2d targetVelocity = path.deriv(axialProfile.get(t).getX()).times(axialProfile.get(t).getV());
         Vector2d trackingError = pose.pos().minus(targetPose.pos()).rotated(-theta);
+        error = trackingError.norm();
+        if (t >= duration && error < MAX_ACCEPTABLE_ERROR) complete = true;
 
         packet.fieldOverlay().setStroke("green");
         packet.fieldOverlay().strokeLine(pose.getX(), pose.getY(), pose.getX() + targetVelocity.getX(), pose.getY() + targetVelocity.getY());
@@ -103,17 +104,6 @@ public class SplineTrajectory extends Trajectory {
         packet.put("lateralError", trackingError.getY());
         packet.put("headingError", headingError);
 
-        if (lastupdate == 0) lastupdate = System.currentTimeMillis();
-        else {
-            long now = System.currentTimeMillis();
-            long dt = now - lastupdate;
-            lastupdate = now;
-            error += trackingError.norm() * dt;
-            axialError += trackingError.getX() * dt;
-            lateralError += trackingError.getY() * dt;
-            averageHeadingError += headingError * dt;
-        }
-
         return targetVelocity.minus(correction);
     }
 
@@ -121,16 +111,6 @@ public class SplineTrajectory extends Trajectory {
     public synchronized boolean isComplete() {
         return complete;
     }
-
-//    public synchronized double averageError() {
-//        return complete ? error / duration: 0;
-//    }
-//
-//    public synchronized double avergeLateralError() {return complete ? lateralError / duration: 0;}
-//
-//    public synchronized double averageAxialError() {return complete ? axialError / duration: 0;}
-//
-//    public synchronized double averageHeadingError() {return complete ? averageHeadingError / duration: 0;}
 
     @Override
     public Pose2d getPose(double t) {
@@ -150,5 +130,10 @@ public class SplineTrajectory extends Trajectory {
     @Override
     public com.acmerobotics.roadrunner.path.Path getPath() {
         return path;
+    }
+
+    @Override
+    public double getError() {
+        return error;
     }
 }

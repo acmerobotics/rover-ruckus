@@ -3,6 +3,7 @@ package com.acmerobotics.roverruckus.opMode.auto;
 import android.media.MediaPlayer;
 import android.util.Log;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roverruckus.robot.Intake;
@@ -17,20 +18,26 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation;
 import org.firstinspires.ftc.teamcode.R;
 
-
+@Config
 public abstract class AutoOpMode extends LinearOpMode {
+
+    public static double MIN_INTAKE_TIME = 5;
+    public static double MIN_SCORE_TIME = 10;
 
     public static final String TAG = "autonomous";
 
     protected Robot robot;
     protected VisionCamera camera;
+    protected GoldLocation goldLocation;
+    protected StartLocation startLocation;
+    private double startTime;
 
     @Override
     public void runOpMode() {
 
         robot = new Robot(this, hardwareMap);
         camera = new VisionCamera();
-        SamplingVision samplingVision = new SamplingVision();
+        SamplingVision samplingVision = new SamplingVision(this);
         camera.addTracker(samplingVision);
         samplingVision.enable();
 
@@ -43,17 +50,21 @@ public abstract class AutoOpMode extends LinearOpMode {
         }
 
         waitForStart();
+        startTime = System.currentTimeMillis();
 
-        GoldLocation location = samplingVision.getLocation();
+        goldLocation = samplingVision.getLocation();
         samplingVision.disable();
+        startLocation = robot.config.getStartLocation();
 
-        Log.i(TAG, location.toString());
+        Log.i(TAG, goldLocation.toString());
 
         if (media != null) media.start();
 
         robot.pause(robot.config.getDelay() * 1000);
 
         //lower
+        robot.lift.setPosition(0);
+        robot.intake.setPosition(0);
         if (robot.config.getLatched()) {
             robot.lift.lower();
             robot.waitForAllSubsystems();
@@ -74,6 +85,7 @@ public abstract class AutoOpMode extends LinearOpMode {
         double distance = rakePosition.distanceTo(robotPosition.pos()) - 6;
         double angle = rakePosition.minus(robotPosition.pos()).angle();
         if (distance > Intake.MAX_RAKE_EXTENSION) {
+            Log.i(TAG, "moving forward: " + (distance - Intake.MAX_RAKE_EXTENSION));
             double moveDistance = distance - Intake.MAX_RAKE_EXTENSION;
             distance -= moveDistance;
             Pose2d moveDestination = new Pose2d(new Vector2d(1, 0).rotated(angle).times(moveDistance), angle);
@@ -87,7 +99,7 @@ public abstract class AutoOpMode extends LinearOpMode {
 
     public AutoAction lowerLift = () -> {
         robot.lift.setAsynch(true);
-        robot.lift.lower();
+        robot.lift.liftBottom();
     };
 
     public AutoAction extendRake = () ->
@@ -95,11 +107,13 @@ public abstract class AutoOpMode extends LinearOpMode {
                 ? AutoPaths.RAKE_POSITION_CRATER
                 : AutoPaths.RAKE_POSITION_DEPOT);
 
-    public AutoAction deployMarker = () -> robot.lift.releaseMarker();
+    public AutoAction deployMarker = () -> robot.intake.deployMarker();
 
-    public AutoAction retractRake = () -> robot.intake.retractRake();
+    public AutoAction retractRake = () -> {
+        robot.intake.retractRake();
+    };
 
-    public AutoAction startIntake = () -> robot.intake.setIntakePower(1);
+    public AutoAction startIntake = () -> robot.intake.setIntakePower(.9);
 
     public AutoAction reverseIntake = () -> robot.intake.setIntakePower(-1);
 
@@ -109,7 +123,7 @@ public abstract class AutoOpMode extends LinearOpMode {
     };
 
     public AutoAction groundIntake = () -> {
-        robot.intake.setIntakePower(1);
+        robot.intake.setIntakePower(.8);
         robot.intake.groundIntakererOut();
     };
 
@@ -133,5 +147,13 @@ public abstract class AutoOpMode extends LinearOpMode {
 
     public Robot getRobot() {
         return robot;
+    }
+
+    public double runTime () {
+        return (System.currentTimeMillis() - startTime) / 1000.0;
+    }
+
+    public double remainingTime () {
+        return 30 - runTime();
     }
 }

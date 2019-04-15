@@ -62,15 +62,18 @@ public class Placer extends Subsystem {
             setArmPosition(getColor(backColor));
             gateServo.setPosition(gateOpen);
             release = false;
-        } else if (release) {
-            setArmPosition(getColor(frontColor));
-            gateServo.setPosition(gateClose);
         }
     }
 
     public void release() {
-        release = true;
-        second = System.currentTimeMillis() + RELEASE_DELAY;
+        release = false;
+        setArmPosition(getColor(frontColor));
+        if (getColor(frontColor) == getColor(backColor)) gateServo.setPosition(gateOpen);
+        else {
+            gateServo.setPosition(gateClose);
+            second = System.currentTimeMillis() + RELEASE_DELAY;
+            release = true;
+        }
     }
 
 

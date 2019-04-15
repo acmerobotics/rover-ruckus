@@ -7,7 +7,6 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.profile.MotionProfile;
 import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
-import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
 import com.acmerobotics.roverruckus.util.PIDController;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -30,19 +29,19 @@ public class Intake extends Subsystem {
     public static double GROUND_INTAKERER_IN = .7;
     public static double GROUND_INTAKERER_OUT = .1;
     public static double GROUND_INTAKERER_MIDDLE = .2;
-    public static double WINCH_RADIUS = .5;
+    public static double WINCH_RADIUS = .71;
     public static double MAX_V = 30;
     public static double MAX_A = 30;
     public static double MAX_J = 15;
     public static double P = -10;
     public static double I = 0;
     public static double D = 0;
-    public static double RAKE_RETRACT_DISTANCE = 6.5;
+    public static double RAKE_RETRACT_DISTANCE = 12;
     public static double RAKE_MARKER_DISTANCE = 30;
     public static double EXPEL_DURATION = 1000;
     public static double RAKE_DELAY_TIME = 500;
     public static double DEBOUNCE_TIME = 500;
-    public static double MAX_RAKE_EXTENSION = 32;
+    public static double MAX_RAKE_EXTENSION = 40;
 
     private DcMotorEx rakeMotor, intakeMotor;
 
@@ -64,6 +63,8 @@ public class Intake extends Subsystem {
     private double lastLow = 0;
     private double intakeTimout;
 
+    private double rakeRetractBlockDistance = RAKE_RETRACT_DISTANCE + 2;
+
     private Robot robot;
 
     public Intake(Robot robot, HardwareMap map) {
@@ -72,10 +73,11 @@ public class Intake extends Subsystem {
         rakeMotor = robot.getMotor("rakeMotor");
         rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
         rakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//        setPosition(0);
+        rakeMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
 
         intakeMotor = robot.getMotor("intakeMotor");
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         beamBreak = robot.getAnalogInput(0, 1);
 
@@ -91,6 +93,11 @@ public class Intake extends Subsystem {
     public void setArmPower(double power) {
         armPower = power;
         driverControled = driverControled || power > 0;
+    }
+
+    public void setRakeRetractBlockingDistance (double distance) {
+        rakeRetractBlockDistance = RAKE_RETRACT_DISTANCE + distance;
+
     }
 
     @Override
@@ -219,7 +226,7 @@ public class Intake extends Subsystem {
 
     @Override
     public boolean isBusy() {
-        return !profileComplete || intaking;
+        return (!profileComplete && getPosition() > rakeRetractBlockDistance) || intaking;
     }
 
     public double getOffset() {
@@ -231,6 +238,7 @@ public class Intake extends Subsystem {
     }
 
     public void intake () {
+        groundIntakererIn();
         intake(30);
     }
 

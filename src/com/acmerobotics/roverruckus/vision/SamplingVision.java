@@ -1,6 +1,7 @@
 package com.acmerobotics.roverruckus.vision;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -27,7 +28,7 @@ public class SamplingVision implements Tracker{
     public static int K_SIZE = 20;
     public static int BLUR_SIZE = 5;
     public static int DISPLAY = 0;
-    public static int THRESHOLD = 250;
+    public static int THRESHOLD = 400;
     public static int CROP = 125;
     private static int i = 0;
     private static GoldLocation location = GoldLocation.CENTER;
@@ -35,6 +36,11 @@ public class SamplingVision implements Tracker{
     private double x = 0;
     private double y = 0;
     private boolean enabled = false;
+    private OpMode master;
+
+    public SamplingVision (OpMode master) {
+        this.master = master;
+    }
 
     public synchronized double getX() {
         return x;
@@ -46,6 +52,8 @@ public class SamplingVision implements Tracker{
 
     public synchronized void processFrame(Mat in) {
         if (!enabled) return;
+        master.telemetry.addData("gold Location", location.name());
+        master.telemetry.update();
         Size s = new Size(600, 800);
         Mat frame = Mat.zeros(s, in.type());
         Imgproc.resize(in, frame, s);

@@ -12,6 +12,7 @@ import com.acmerobotics.roadrunner.drive.MecanumKinematics;
 import com.acmerobotics.roverruckus.hardware.LynxOptimizedI2cFactory;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.util.PIDController;
+import com.acmerobotics.roverruckus.util.SuperArrayList;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.hardware.lynx.LynxModule;
@@ -226,9 +227,15 @@ public class MecanumDrive extends Subsystem {
         startTime = System.currentTimeMillis();
     }
 
+    public void followTrajectories (SuperArrayList<Trajectory> trajectories) {
+        for (Trajectory trajectory: trajectories) {
+            followTrajectory(trajectory);
+            robot.waitForAllSubsystems();
+        }
+    }
+
     public boolean isFollowingPath() {
-        if (currentMode != Mode.FOLLOWING_PATH) return false;
-        return !trajectory.isComplete();
+        return currentMode == Mode.FOLLOWING_PATH && !trajectory.isComplete();
     }
 
     public Pose2d getCurrentEstimatedPose() {

@@ -13,7 +13,7 @@ public class VisionTest extends LinearOpMode {
     public void runOpMode() {
 
         VisionCamera camera = new VisionCamera();
-        SamplingVision samplingVision = new SamplingVision();
+        SamplingVision samplingVision = new SamplingVision(this);
         samplingVision.enable();
         camera.addTracker(samplingVision);
 

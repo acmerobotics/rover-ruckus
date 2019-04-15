@@ -78,28 +78,6 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         config = new OpModeConfiguration(map.appContext);
         this.motors = new ArrayList<>();
 
-//        try {
-        drive = new MecanumDrive(this, map);
-        subsystems.add(drive);
-//        } catch (Exception e) {
-//            telemetryLines.add("problem with drive");
-//            Log.e("configuration", e.getLocalizedMessage());
-//        }
-        try {
-        intake = new Intake(this, map);
-        subsystems.add(intake);
-        } catch (Exception e) {
-            telemetryLines.add("problem with intake");
-            Log.e("configuration", e.getLocalizedMessage());
-        }
-        try {
-        lift = new Lift(this, map);
-        subsystems.add(lift);
-        } catch (Exception e) {
-            telemetryLines.add("problem with lift");
-            Log.e("configuration", e.getLocalizedMessage());
-        }
-
         hubs = new HashMap<>(2);
         responses = new HashMap<>(2);
         try {
@@ -120,6 +98,29 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
             telemetryLines.add("problem with hub2");
         }
 
+        updateHardware();
+
+        try {
+        drive = new MecanumDrive(this, map);
+        subsystems.add(drive);
+        } catch (Exception e) {
+            telemetryLines.add("problem with drive");
+            Log.e("configuration", e.getLocalizedMessage());
+        }
+        try {
+        intake = new Intake(this, map);
+        subsystems.add(intake);
+        } catch (Exception e) {
+            telemetryLines.add("problem with intake");
+            Log.e("configuration", e.getLocalizedMessage());
+        }
+        try {
+        lift = new Lift(this, map);
+        subsystems.add(lift);
+        } catch (Exception e) {
+            telemetryLines.add("problem with lift");
+            Log.e("configuration", e.getLocalizedMessage());
+        }
 
         RobotLog.registerGlobalWarningSource(this);
         Activity activity = (Activity) opMode.hardwareMap.appContext;
@@ -314,23 +315,24 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     }
 
     public void update() {
+        if (master.isStopRequested()) return;
         long start = System.currentTimeMillis();
+        updateHardware();
+        long hardwareEnd = System.currentTimeMillis();
         updateSubsystems();
         long subsystemEnd = System.currentTimeMillis();
         updateTelemetry();
-        long telemetryEnd = System.currentTimeMillis();
-        updateHardware();
         long end = System.currentTimeMillis();
         telemetry.put("looptime", end - start);
-        telemetry.put("subsystemTime", subsystemEnd - start);
-        telemetry.put("telemetryTime", telemetryEnd - subsystemEnd);
-        telemetry.put("hardwareTime", end - telemetryEnd);
+        telemetry.put("subsystemTime", subsystemEnd - hardwareEnd);
+        telemetry.put("telemetryTime", end - subsystemEnd);
+        telemetry.put("hardwareTime", hardwareEnd - start);
     }
 
 
     public void pause(double millis) {
         long start = System.currentTimeMillis();
-        while (((millis + start) - System.currentTimeMillis()) > 0) {
+        while (((millis + start) - System.currentTimeMillis()) > 0 && !master.isStopRequested()) {
             update();
         }
     }

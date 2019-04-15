@@ -39,7 +39,6 @@ public class TrajectoryBuilder {
     }
 
     public TrajectoryBuilder partialTurnTo(Waypoint waypoint) {
-        newPath();
         PathBuilder path = new PathBuilder(lastWaypoint.getExit());
         path.splineTo(waypoint.getEnter(), new ConstantInterpolator(lastWaypoint.getHeading()));
         trajectories.add(new PartialTurnSplineTrajectory(path.build(), waypoint.getHeading()));
@@ -47,24 +46,29 @@ public class TrajectoryBuilder {
     }
 
     public TrajectoryBuilder addAction (double t, AutoAction action) {
+        newPath();
         trajectories.get(-1).addAction(t, action);
         return this;
     }
 
     public TrajectoryBuilder addActionOnStart (AutoAction action) {
+        newPath();
         trajectories.get(-1).addAction(0, action);
         return this;
     }
 
     public TrajectoryBuilder addActionOnCompletion (AutoAction action) {
+        newPath();
         trajectories.get(-1).addActionOnCompletion(action);
         return this;
     }
 
     private void newPath() {
-        if (added) trajectories.add(new SplineTrajectory(currentPath.build()));
+        if (added) {
+            trajectories.add(new SplineTrajectory(currentPath.build()));
+            currentPath = new PathBuilder(lastWaypoint.getExit());
+        }
         added = false;
-        currentPath = new PathBuilder(lastWaypoint.getExit());
     }
 
     public SuperArrayList<Trajectory> build() {

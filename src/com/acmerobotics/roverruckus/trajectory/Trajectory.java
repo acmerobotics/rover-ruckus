@@ -1,5 +1,7 @@
 package com.acmerobotics.roverruckus.trajectory;
 
+import android.util.Log;
+
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -7,6 +9,7 @@ import com.acmerobotics.roadrunner.path.Path;
 import com.acmerobotics.roverruckus.opMode.auto.AutoAction;
 import com.acmerobotics.roverruckus.opMode.auto.AutoOpMode;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,18 +25,21 @@ public abstract class Trajectory {
     public static double HEADING_P = 6;
     public static double HEADING_I = 0;
     public static double HEADING_D = 0;
-    public static double K_A = 0;
 
+    public static double MAX_ACCEPTABLE_ERROR = 2;
     private Map<AutoAction, Double> actions;
 
     public Trajectory () {
         actions = new HashMap<>();
     }
 
-    public Trajectory addAction (double t, AutoAction action) {
-        if (t < 0 || t > duration()) t = duration();
+    public synchronized Trajectory addAction (double t, AutoAction action) {
+        if (t > duration()) t = duration();
+        if (t < 0) t = duration() + t;
         actions.put(action, t);
         return this;
+
+
     }
 
     public Trajectory addAction (AutoAction action) {
@@ -41,12 +47,17 @@ public abstract class Trajectory {
     }
 
     public Trajectory addActionOnCompletion (AutoAction action) {
-        return addAction(-1, action);
+        return addAction(duration(), action);
     }
 
-    public Pose2d update(double t, Pose2d pose, TelemetryPacket packet) {
-        for (AutoAction action: actions.keySet())
-            if (actions.get(action) >= t) action.execute();
+    public synchronized Pose2d update(double t, Pose2d pose, TelemetryPacket packet) {
+        for (AutoAction action: new ArrayList<>(actions.keySet())) {
+            if (actions.get(action) <= t && getError() < MAX_ACCEPTABLE_ERROR) {
+                action.execute();
+                actions.remove(action);
+                Log.i("trajectory", action.toString());
+            }
+        }
         return internalUpdate(t, pose, packet);
     }
 
@@ -59,6 +70,10 @@ public abstract class Trajectory {
     public abstract double duration();
 
     public abstract boolean isComplete();
+
+    public double getError () {
+        return 0;
+    }
 
     public abstract Path getPath();
 
