@@ -10,14 +10,4 @@ public abstract class Subsystem {
         return false;
     }
 
-    public void waitForCompleteion() {
-        for (; ; ) {
-            if (!isBusy()) return;
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException ie) {
-                //yikes
-            }
-        }
-    }
 }

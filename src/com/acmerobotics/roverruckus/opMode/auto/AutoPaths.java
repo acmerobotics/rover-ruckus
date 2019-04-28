@@ -12,6 +12,7 @@ import com.acmerobotics.roverruckus.vision.GoldLocation;
 import org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation;
 
 import static org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation.CRATER;
+import static org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation.DEPOT;
 
 @Config
 public class AutoPaths {
@@ -86,13 +87,19 @@ public class AutoPaths {
 
     private GoldLocation location;
     private StartLocation start;
-    private AutoOpMode opMode;
+    private AutoOpMode opMode = null;
 
     public AutoPaths(AutoOpMode opMode, GoldLocation location, StartLocation start) {
         this.location = location;
         this.start = start;
         this.lastPosition = start();
         this.opMode = opMode;
+    }
+
+    public AutoPaths (GoldLocation location, StartLocation start) {
+        this.location = location;
+        this.start = start;
+        this.lastPosition = start();
     }
 
     public Waypoint MINERAL_OFFSET_LEFT_CRATER (double offset) {
@@ -208,6 +215,37 @@ public class AutoPaths {
         builder.to(PARK_CLEAR_TWO).addActionOnCompletion(opMode.stopIntake);
         builder.turnTo(PI);
         builder.to(park());
+        return builder.build();
+    }
+
+    public SuperArrayList<Trajectory> mockDoubleSample () {
+        start = CRATER;
+        TrajectoryBuilder builder = new TrajectoryBuilder(start());
+        builder.to(release());
+        if (location == GoldLocation.RIGHT) builder.to(sampleSecond());
+        else builder.to(SAMPLE_SECORD_CLEAR).to(sampleSecond()).to(SAMPLE_SECOND_RETURN);
+        builder.to(sample()).to(intake());
+        return builder.build();
+    }
+
+    public SuperArrayList<Trajectory> mockDepot () {
+        start = DEPOT;
+        TrajectoryBuilder builder = new TrajectoryBuilder(start());
+        builder.to(release());
+        builder.to(sample());
+        if (location != GoldLocation.LEFT) builder.to(PARK_CLEAR_ONE);
+        builder.to(PARK_CLEAR_TWO).to(park());
+        return builder.build();
+    }
+
+    public SuperArrayList<Trajectory> mockCycle () {
+        start = CRATER;
+        TrajectoryBuilder builder = new TrajectoryBuilder(start());
+        builder.to(release());
+        builder.to(marker());
+        builder.to(sample());
+        builder.to(intake());
+        builder.to(score());
         return builder.build();
     }
 

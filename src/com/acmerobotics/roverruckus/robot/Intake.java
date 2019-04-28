@@ -73,7 +73,6 @@ public class Intake extends Subsystem {
         rakeMotor = robot.getMotor("rakeMotor");
         rakeMotor.setDirection(DcMotorSimple.Direction.REVERSE); //todo check direction
         rakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rakeMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
 
         intakeMotor = robot.getMotor("intakeMotor");
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -92,7 +91,7 @@ public class Intake extends Subsystem {
 
     public void setArmPower(double power) {
         armPower = power;
-        driverControled = driverControled || power > 0;
+        driverControled = driverControled || Math.abs(power) > 0;
     }
 
     public void setRakeRetractBlockingDistance (double distance) {

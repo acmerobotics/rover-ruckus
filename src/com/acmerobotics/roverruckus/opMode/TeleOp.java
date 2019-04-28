@@ -30,6 +30,8 @@ public class TeleOp extends LinearOpMode {
 
         waitForStart();
 
+        robot.lift.liftBottom();
+
         while (!isStopRequested()) {
 
             //drive

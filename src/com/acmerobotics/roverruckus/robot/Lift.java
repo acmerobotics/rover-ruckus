@@ -102,6 +102,7 @@ public class Lift extends Subsystem {
     private boolean liftRequested = false;
     private double liftTime = 0;
     private boolean edumpRequested = false;
+    private boolean calibrated = false;
 
     private Robot robot;
 
@@ -241,6 +242,7 @@ public class Lift extends Subsystem {
                     targetPosition = 0;
                     setPosition(0);
                     pidController = new PIDController(P, I, D);
+                    calibrated = true;
                 }
         }
 
@@ -283,6 +285,7 @@ public class Lift extends Subsystem {
 
 
     public void setVelocity(double v) {
+        if (!calibrated) return;
         if (Math.abs(v) < .1 && liftMode != LiftMode.DRIVER_CONTROLLED) return;
         if (getPosition() >= LIFT_MAX && v > 0) return;
         if (getPosition() <= 0 && v < 0) return;
@@ -319,6 +322,7 @@ public class Lift extends Subsystem {
     }
 
     public void liftTop() {
+        if (!calibrated) return;
         placer.openGate();
         placer.closeIntake();
         liftRequested = true;
@@ -345,6 +349,7 @@ public class Lift extends Subsystem {
     }
 
     public void dumpUp() {
+        if (!calibrated) return;
         if (liftMode == LiftMode.RUN_TO_POSITION) setDumpOnCompletion(DUMP_UP);
         else if (getPosition() < LIFT_E_DUMP) {
             placer.openGate();
@@ -411,6 +416,7 @@ public class Lift extends Subsystem {
     }
 
     public void findLatch() {
+        if (!calibrated) return;
         findLatch(getPosition() < (LIFT_FIND_LATCH_START_ABOVE + LIFT_FIND_LATCH_START_BELOW) / 2);
     }
 
@@ -455,6 +461,10 @@ public class Lift extends Subsystem {
     private void executeCompletionActions () {
         for (CompletionAction action: actionsOnComplete) action.onCompletion();
         dumped = dumpPositionOnCompletion == DUMP_UP && actionsOnComplete.contains(dumpAction);
+    }
+
+    public void setCalibrated () {
+        calibrated = true;
     }
 }
 

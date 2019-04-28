@@ -13,17 +13,12 @@ public class RakeTest extends LinearOpMode {
 
         waitForStart();
 
-        robot.intake.extendToDeploy();
-
-        robot.waitForAllSubsystems();
-
-        robot.pause(500);
-
-        robot.intake.deployMarker();
-
-        robot.intake.retractRake();
-
-        robot.waitForAllSubsystems();
+        while (!isStopRequested()) {
+            robot.intake.setArmPower(gamepad1.left_trigger - gamepad1.right_trigger);
+            telemetry.addData("rakePower", gamepad1.left_trigger - gamepad1.right_trigger);
+            telemetry.update();
+            robot.update();
+        }
 
     }
 }

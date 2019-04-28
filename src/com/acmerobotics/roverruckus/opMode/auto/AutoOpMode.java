@@ -49,6 +49,8 @@ public abstract class AutoOpMode extends LinearOpMode {
             Log.e(TAG, "error playing media: " + e.getMessage());
         }
 
+        robot.lift.setCalibrated();
+
         waitForStart();
         startTime = System.currentTimeMillis();
 
