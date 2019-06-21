@@ -90,8 +90,7 @@ public class Intake extends Subsystem {
     }
 
     public void setArmPower(double power) {
-        armPower = power;
-        driverControled = driverControled || Math.abs(power) > 0;
+        rakeMotor.setPower(power);
     }
 
     public void setRakeRetractBlockingDistance (double distance) {
@@ -101,55 +100,55 @@ public class Intake extends Subsystem {
 
     @Override
     public void update(TelemetryPacket packet) {
-        packet.put("rakePosition", getPosition());
-        packet.put("beamBreak", beamBreak.getVoltage());
-        Log.i(TAG, "position: " + getPosition());
-        Log.i(TAG, "driver controlled: " + driverControled);
-        Log.i(TAG, "complete" + profileComplete);
-        if (driverControled) {
-            rakeMotor.setPower(armPower);
-            targetX = getPosition();
-
-        } else {
-            long now = System.currentTimeMillis();
-            double t = (now - startTime) / 1000.0;
-            Log.i(TAG, "t: " + t);
-//            Log.i(TAG, "duration" + armProfile.duration());
-            double targetV = 0;
-            if (armProfile != null && t <= armProfile.duration()) {
-                MotionState targetState = armProfile.get(t);
-                targetV = targetState.getV();
-                Log.i(TAG, "targetV: " + targetV);
-                targetX = targetState.getX();
-                Log.i(TAG, "targetX:" + targetX);
-            } else {
-                profileComplete = true;
-            }
-            double error = getPosition() - targetX;
-            Log.i(TAG, "error" + error);
-            packet.put("rakeError", error);
-            double correction = controller.update(error);
-            Log.i(TAG, "correction: " + correction);
-            packet.put("command", targetV + correction);
-            rakeMotor.setVelocity((targetV + correction) / WINCH_RADIUS, AngleUnit.RADIANS);
-        }
-
-        if (intaking) {
-            if (beamBreak.getVoltage() > 500) lastLow = System.currentTimeMillis();
-            if (beamBreak.getVoltage() < 500 && lastLow + DEBOUNCE_TIME <= System.currentTimeMillis() || System.currentTimeMillis() > intakeTimout) {
-                intaking = false;
-                intakeMotor.setPower(-1);
-                needStop = true;
-                stopTime = System.currentTimeMillis() + (long) EXPEL_DURATION;
-            }
-        }
-
-        if (needStop) {
-            if (stopTime <= System.currentTimeMillis()) {
-                needStop = false;
-                intakeMotor.setPower(0);
-            }
-        }
+//        packet.put("rakePosition", getPosition());
+//        packet.put("beamBreak", beamBreak.getVoltage());
+//        Log.i(TAG, "position: " + getPosition());
+//        Log.i(TAG, "driver controlled: " + driverControled);
+//        Log.i(TAG, "complete" + profileComplete);
+//        if (driverControled) {
+//            rakeMotor.setPower(armPower);
+////            targetX = getPosition();
+//
+//        } else {
+//            long now = System.currentTimeMillis();
+//            double t = (now - startTime) / 1000.0;
+//            Log.i(TAG, "t: " + t);
+////            Log.i(TAG, "duration" + armProfile.duration());
+//            double targetV = 0;
+//            if (armProfile != null && t <= armProfile.duration()) {
+//                MotionState targetState = armProfile.get(t);
+//                targetV = targetState.getV();
+//                Log.i(TAG, "targetV: " + targetV);
+//                targetX = targetState.getX();
+//                Log.i(TAG, "targetX:" + targetX);
+//            } else {
+//                profileComplete = true;
+//            }
+//            double error = getPosition() - targetX;
+//            Log.i(TAG, "error" + error);
+//            packet.put("rakeError", error);
+//            double correction = controller.update(error);
+//            Log.i(TAG, "correction: " + correction);
+//            packet.put("command", targetV + correction);
+//            rakeMotor.setVelocity((targetV + correction) / WINCH_RADIUS, AngleUnit.RADIANS);
+//        }
+//
+//        if (intaking) {
+//            if (beamBreak.getVoltage() > 500) lastLow = System.currentTimeMillis();
+//            if (beamBreak.getVoltage() < 500 && lastLow + DEBOUNCE_TIME <= System.currentTimeMillis() || System.currentTimeMillis() > intakeTimout) {
+//                intaking = false;
+//                intakeMotor.setPower(-1);
+//                needStop = true;
+//                stopTime = System.currentTimeMillis() + (long) EXPEL_DURATION;
+//            }
+//        }
+//
+//        if (needStop) {
+//            if (stopTime <= System.currentTimeMillis()) {
+//                needStop = false;
+//                intakeMotor.setPower(0);
+//            }
+//        }
     }
 
     public void goToPosition(double position) {
