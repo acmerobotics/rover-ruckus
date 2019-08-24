@@ -5,16 +5,14 @@ import com.acmerobotics.roverruckus.opMode.auto.AutoPaths;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.vision.GoldLocation;
 
-import org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation;
-
 import java.io.FileWriter;
 
 public class TrajectoryWriter {
 
     public static void main (String[] args) {
-        AutoPaths paths = new AutoPaths(GoldLocation.CENTER, StartLocation.CRATER);
+        AutoPaths paths = new AutoPaths(GoldLocation.CENTER, RoverRuckusConfiguration.StartLocation.CRATER);
         writeTrajectory(paths.mockCycle(), "double");
-        paths = new AutoPaths(GoldLocation.CENTER, StartLocation.DEPOT);
+        paths = new AutoPaths(GoldLocation.CENTER, RoverRuckusConfiguration.StartLocation.DEPOT);
         writeTrajectory(paths.mockDepot(), "depot");
     }
 

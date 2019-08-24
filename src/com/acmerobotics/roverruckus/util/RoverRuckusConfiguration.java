@@ -1,7 +1,8 @@
 package com.acmerobotics.roverruckus.util;
 
-import org.firstinspires.ftc.robotcontroller.internal.configuration.IntegerConfiguration;
-import org.firstinspires.ftc.robotcontroller.internal.configuration.OpmodeConfiguration;
+
+import com.acmerobotics.lib.config.IntegerConfiguration;
+import com.acmerobotics.lib.config.OpmodeConfiguration;
 
 @OpmodeConfiguration
 public class RoverRuckusConfiguration {

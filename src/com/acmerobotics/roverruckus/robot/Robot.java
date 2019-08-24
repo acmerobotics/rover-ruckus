@@ -5,10 +5,14 @@ import android.util.Log;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.lib.config.ConfigurationLoader;
+import com.acmerobotics.lib.config.OpModeConfigurationActivity;
 import com.acmerobotics.roverruckus.hardware.CachingAnalogInput;
 import com.acmerobotics.roverruckus.hardware.CachingDcMotorEx;
 import com.acmerobotics.roverruckus.hardware.CachingMotor;
 import com.acmerobotics.roverruckus.hardware.CachingServo;
+import com.acmerobotics.lib.config.OpmodeConfiguration;
+import com.acmerobotics.roverruckus.util.RoverRuckusConfiguration;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.lynx.LynxModuleIntf;
 import com.qualcomm.hardware.lynx.commands.core.LynxGetBulkInputDataCommand;
@@ -25,7 +29,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.GlobalWarningSource;
 import com.qualcomm.robotcore.util.RobotLog;
 
-import org.firstinspires.ftc.robotcontroller.internal.configuration.OpModeConfiguration;
 import org.firstinspires.ftc.robotcore.internal.collections.EvictingBlockingQueue;
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeManagerImpl;
 
@@ -64,7 +67,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
     private LinearOpMode master;
     private HardwareMap map;
 
-    public OpModeConfiguration config;
+    public RoverRuckusConfiguration config;
 
     private List<CachingMotor> motors;
 
@@ -75,7 +78,7 @@ public class Robot implements OpModeManagerNotifier.Notifications, GlobalWarning
         packets = new EvictingBlockingQueue<>(new ArrayBlockingQueue<TelemetryPacket>(10));
         telemetry = new HashMap<>();
         telemetryLines = new ArrayList<>();
-        config = new OpModeConfiguration(map.appContext);
+        config = (RoverRuckusConfiguration) new ConfigurationLoader(map.appContext).getConfig();
         this.motors = new ArrayList<>();
 
         hubs = new HashMap<>(2);

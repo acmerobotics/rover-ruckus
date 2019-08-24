@@ -1,8 +1,8 @@
 package com.acmerobotics.roverruckus.opMode.auto;
 
+import com.acmerobotics.roverruckus.util.RoverRuckusConfiguration;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-import org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation;
 
 @Autonomous(name="doubleSampleCrater")
 public class DoubleSampleCraterAuto extends AutoOpMode {
@@ -10,8 +10,8 @@ public class DoubleSampleCraterAuto extends AutoOpMode {
     @Override
     protected void run() {
         this.extendRake = () -> robot.intake.goToPosition(30);
-        robot.config.setSampleBoth(true);
-        startLocation = StartLocation.CRATER;
+        robot.config.sampleBoth = true;
+        startLocation = RoverRuckusConfiguration.StartLocation.CRATER;
         AutoPaths paths = new AutoPaths(this, goldLocation, startLocation);
         robot.drive.setCurrentEstimatedPose(paths.start().pos());
 

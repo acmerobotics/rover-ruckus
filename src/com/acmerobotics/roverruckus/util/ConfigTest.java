@@ -2,10 +2,9 @@ package com.acmerobotics.roverruckus.util;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.lib.config.ConfigurationLoader;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-
-import org.firstinspires.ftc.robotcontroller.internal.configuration.ConfigurationLoader;
 
 @Autonomous(name="configTest")
 public class ConfigTest extends LinearOpMode {

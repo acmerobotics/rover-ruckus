@@ -25,15 +25,13 @@ public class VisionCamera implements OpModeManagerNotifier.Notifications, JavaCa
 
     public static final String TAG = "VisionCamera";
 
-    private OpModeManagerImpl opModeManager;
     private Activity activity;
     private List<Tracker> trackers;
-    JavaCamera2View view;
+    private JavaCamera2View view;
 
     public VisionCamera () {
         activity = AppUtil.getInstance().getActivity();
-        opModeManager = OpModeManagerImpl.getOpModeManagerOfActivity(activity);
-        opModeManager.registerListener(this);
+        OpModeManagerImpl.getOpModeManagerOfActivity(activity).registerListener(this);
         trackers = new ArrayList<>();
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -66,24 +64,20 @@ public class VisionCamera implements OpModeManagerNotifier.Notifications, JavaCa
 
         view = (JavaCamera2View) activity.findViewById(com.qualcomm.ftcrobotcontroller.R.id.cameraViewId);
         view.setCvCameraViewListener(this);
-        AppUtil.getInstance().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                view.enableView();
-                view.setVisibility(View.VISIBLE);
-            }
+        view.setCam
+        view.setMaxFrameSize(4000, 4000);
+        AppUtil.getInstance().runOnUiThread(() -> {
+            view.enableView();
+            view.setVisibility(View.VISIBLE);
         });
 
     }
 
-    public void stop () {
+    private void stop() {
         Log.i(TAG, "stopped");
-        AppUtil.getInstance().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                view.disableView();
-                view.setVisibility(View.INVISIBLE);
-            }
+        AppUtil.getInstance().runOnUiThread(() -> {
+            view.disableView();
+            view.setVisibility(View.INVISIBLE);
         });
     }
 

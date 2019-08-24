@@ -6,13 +6,13 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roverruckus.trajectory.Trajectory;
 import com.acmerobotics.roverruckus.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roverruckus.trajectory.Waypoint;
+import com.acmerobotics.roverruckus.util.RoverRuckusConfiguration;
 import com.acmerobotics.roverruckus.util.SuperArrayList;
 import com.acmerobotics.roverruckus.vision.GoldLocation;
 
-import org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation;
+import static com.acmerobotics.roverruckus.util.RoverRuckusConfiguration.StartLocation.CRATER;
+import static com.acmerobotics.roverruckus.util.RoverRuckusConfiguration.StartLocation.DEPOT;
 
-import static org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation.CRATER;
-import static org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation.DEPOT;
 
 @Config
 public class AutoPaths {
@@ -86,17 +86,17 @@ public class AutoPaths {
     private Waypoint lastPosition;
 
     private GoldLocation location;
-    private StartLocation start;
+    private RoverRuckusConfiguration.StartLocation start;
     private AutoOpMode opMode = null;
 
-    public AutoPaths(AutoOpMode opMode, GoldLocation location, StartLocation start) {
+    public AutoPaths(AutoOpMode opMode, GoldLocation location, RoverRuckusConfiguration.StartLocation start) {
         this.location = location;
         this.start = start;
         this.lastPosition = start();
         this.opMode = opMode;
     }
 
-    public AutoPaths (GoldLocation location, StartLocation start) {
+    public AutoPaths (GoldLocation location, RoverRuckusConfiguration.StartLocation start) {
         this.location = location;
         this.start = start;
         this.lastPosition = start();

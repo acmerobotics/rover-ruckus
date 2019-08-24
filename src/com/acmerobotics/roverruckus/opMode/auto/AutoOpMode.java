@@ -10,12 +10,12 @@ import com.acmerobotics.roverruckus.robot.Intake;
 import com.acmerobotics.roverruckus.robot.Robot;
 import com.acmerobotics.roverruckus.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roverruckus.trajectory.Waypoint;
+import com.acmerobotics.roverruckus.util.RoverRuckusConfiguration;
 import com.acmerobotics.roverruckus.vision.GoldLocation;
 import com.acmerobotics.roverruckus.vision.SamplingVision;
 import com.acmerobotics.roverruckus.vision.VisionCamera;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-import org.firstinspires.ftc.robotcontroller.internal.configuration.StartLocation;
 import org.firstinspires.ftc.teamcode.R;
 
 @Config
@@ -29,7 +29,7 @@ public abstract class AutoOpMode extends LinearOpMode {
     protected Robot robot;
     protected VisionCamera camera;
     protected GoldLocation goldLocation;
-    protected StartLocation startLocation;
+    protected RoverRuckusConfiguration.StartLocation startLocation;
     private double startTime;
 
     @Override
@@ -43,7 +43,7 @@ public abstract class AutoOpMode extends LinearOpMode {
 
         MediaPlayer media = null;
         try {
-            if (robot.config.getPlayMusic())
+            if (robot.config.playMusic)
                 media = MediaPlayer.create(hardwareMap.appContext, R.raw.tokyo_drift);
         } catch (Exception e) {
             Log.e(TAG, "error playing media: " + e.getMessage());
@@ -56,18 +56,18 @@ public abstract class AutoOpMode extends LinearOpMode {
 
         goldLocation = samplingVision.getLocation();
         samplingVision.disable();
-        startLocation = robot.config.getStartLocation();
+        startLocation = robot.config.startLocation;
 
         Log.i(TAG, goldLocation.toString());
 
         if (media != null) media.start();
 
-        robot.pause(robot.config.getDelay() * 1000);
+        robot.pause(robot.config.delay * 1000);
 
         //lower
         robot.lift.setPosition(0);
         robot.intake.setPosition(0);
-        if (robot.config.getLatched()) {
+        if (robot.config.latched) {
             robot.lift.lower();
             robot.waitForAllSubsystems();
         }
@@ -105,7 +105,7 @@ public abstract class AutoOpMode extends LinearOpMode {
     };
 
     public AutoAction extendRake = () ->
-        setRakePosition(robot.config.getStartLocation() == StartLocation.CRATER
+        setRakePosition(robot.config.startLocation == RoverRuckusConfiguration.StartLocation.CRATER
                 ? AutoPaths.RAKE_POSITION_CRATER
                 : AutoPaths.RAKE_POSITION_DEPOT);
 
